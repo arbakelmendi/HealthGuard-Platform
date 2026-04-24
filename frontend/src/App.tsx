@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 import LoginPage from "./pages/LoginPage";
@@ -35,6 +35,20 @@ import ModelTuningPage from "./pages/ml/ModelTuningPage";
 
 const queryClient = new QueryClient();
 
+function AuthPage({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isAdmin } = useAuth();
+  if (isAuthenticated) {
+    return <Navigate to={isAdmin ? "/admin/users" : "/"} replace />;
+  }
+  return <>{children}</>;
+}
+
+function HomeRoute() {
+  const { isAdmin } = useAuth();
+  if (isAdmin) return <Navigate to="/admin/users" replace />;
+  return <DashboardPage />;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -44,13 +58,13 @@ const App = () => (
         <AuthProvider>
           <Routes>
             {/* Public auth routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/login" element={<AuthPage><LoginPage /></AuthPage>} />
+            <Route path="/signup" element={<AuthPage><SignupPage /></AuthPage>} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Protected user routes */}
-            <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/" element={<ProtectedRoute><HomeRoute /></ProtectedRoute>} />
             <Route path="/my-profile" element={<ProtectedRoute><MyProfilePage /></ProtectedRoute>} />
             <Route path="/health-profile" element={<ProtectedRoute><HealthProfilePage /></ProtectedRoute>} />
             <Route path="/symptoms" element={<ProtectedRoute><SymptomsPage /></ProtectedRoute>} />

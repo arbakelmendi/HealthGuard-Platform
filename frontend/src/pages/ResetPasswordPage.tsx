@@ -24,7 +24,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-6">
+      <div className="w-full max-w-md mx-auto space-y-6">
         <div className="text-center space-y-2">
           <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mx-auto shadow-glow">
             <Activity className="w-7 h-7 text-primary-foreground" />
