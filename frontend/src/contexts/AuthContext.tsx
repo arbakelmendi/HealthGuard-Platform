@@ -1,125 +1,84 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
-
-export type UserRole = "user" | "admin";
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: UserRole;
-  avatar?: string;
-  phone?: string;
-  age?: number;
-  gender?: string;
-  weight?: number;
-  height?: number;
-  joinedDate: string;
-}
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { authService } from "@/services/authService";
+import type { AuthUser, LoginRequest, SignupRequest, UpdateProfileRequest, UserRole } from "@/types/auth";
 
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, firstName: string, lastName: string) => Promise<boolean>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<AuthUser>;
+  signup: (request: SignupRequest) => Promise<AuthUser>;
   logout: () => void;
-  updateProfile: (updates: Partial<AuthUser>) => void;
+  updateProfile: (updates: UpdateProfileRequest) => Promise<AuthUser>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const MOCK_USERS: (AuthUser & { password: string })[] = [
-  {
-    id: "1",
-    email: "admin@healthguard.com",
-    password: "admin123",
-    firstName: "Sarah",
-    lastName: "Chen",
-    role: "admin",
-    phone: "+1 555-0100",
-    age: 34,
-    gender: "Female",
-    weight: 62,
-    height: 168,
-    joinedDate: "2025-06-15",
-  },
-  {
-    id: "2",
-    email: "user@healthguard.com",
-    password: "user123",
-    firstName: "John",
-    lastName: "Doe",
-    role: "user",
-    phone: "+1 555-0200",
-    age: 42,
-    gender: "Male",
-    weight: 85,
-    height: 178,
-    joinedDate: "2025-11-02",
-  },
-];
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    const stored = localStorage.getItem("healthguard_user");
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [user, setUser] = useState<AuthUser | null>(() => authService.getCurrentUser());
 
-  const login = useCallback(async (email: string, _password: string): Promise<boolean> => {
-    const found = MOCK_USERS.find((u) => u.email === email);
-    if (found) {
-      const { password: _, ...userData } = found;
-      setUser(userData);
-      localStorage.setItem("healthguard_user", JSON.stringify(userData));
-      return true;
-    }
-    return false;
+  useEffect(() => {
+    const session = authService.getCurrentSession();
+    if (!session) return;
+
+    authService.refreshProfile()
+      .then(setUser)
+      .catch(() => {
+        authService.logout();
+        setUser(null);
+      });
   }, []);
 
-  const signup = useCallback(async (email: string, _password: string, firstName: string, lastName: string): Promise<boolean> => {
-    const newUser: AuthUser = {
-      id: Date.now().toString(),
-      email,
-      firstName,
-      lastName,
-      role: "user",
-      joinedDate: new Date().toISOString().split("T")[0],
-    };
-    setUser(newUser);
-    localStorage.setItem("healthguard_user", JSON.stringify(newUser));
-    return true;
+  const login = useCallback(async (email: string, password: string, rememberMe = true) => {
+    const request: LoginRequest = { email, password, rememberMe };
+    const session = await authService.login(request);
+    setUser(session.user);
+    return session.user;
+  }, []);
+
+  const signup = useCallback(async (request: SignupRequest) => {
+    const session = await authService.signup(request);
+    setUser(session.user);
+    return session.user;
   }, []);
 
   const logout = useCallback(() => {
+    authService.logout();
     setUser(null);
-    localStorage.removeItem("healthguard_user");
   }, []);
 
-  const updateProfile = useCallback((updates: Partial<AuthUser>) => {
-    setUser((prev) => {
-      if (!prev) return prev;
-      const updated = { ...prev, ...updates };
-      localStorage.setItem("healthguard_user", JSON.stringify(updated));
-      return updated;
-    });
+  const updateProfile = useCallback(async (updates: UpdateProfileRequest) => {
+    const updated = await authService.updateProfile(updates);
+    setUser(updated);
+    return updated;
   }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isAdmin: user?.role === "admin",
-        login,
-        signup,
-        logout,
-        updateProfile,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const refreshUser = useCallback(async () => {
+    const session = authService.getCurrentSession();
+    if (!session) {
+      setUser(null);
+      return;
+    }
+    const nextUser = await authService.refreshProfile();
+    setUser(nextUser);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      user,
+      isAuthenticated: !!user,
+      isAdmin: user?.role === "admin",
+      login,
+      signup,
+      logout,
+      updateProfile,
+      refreshUser,
+    }),
+    [login, logout, refreshUser, signup, updateProfile, user],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
@@ -127,3 +86,5 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
+
+export type { AuthUser, UserRole };
