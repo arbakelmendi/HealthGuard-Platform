@@ -1,21 +1,19 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace HealthGuard.API.Models;
+namespace HealthGuard.API.DTOs.HealthRecords;
 
-public class HealthRecord
+public class UpdateHealthRecordDto
 {
-    public int Id { get; set; }
-
     [Required]
-    public int UserId { get; set; }
-
-    [Required]
+    [Range(1, 120)]
     public int Age { get; set; }
 
     [Required]
+    [Range(1, 300)]
     public decimal Weight { get; set; }
 
     [Required]
+    [Range(30, 250)]
     public decimal Height { get; set; }
 
     [Required]
@@ -23,12 +21,10 @@ public class HealthRecord
     public string BloodPressure { get; set; } = string.Empty;
 
     [Required]
+    [Range(30, 220)]
     public int HeartRate { get; set; }
 
     [Required]
+    [Range(1, 600)]
     public decimal Glucose { get; set; }
-
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    public User User { get; set; } = null!;
 }
