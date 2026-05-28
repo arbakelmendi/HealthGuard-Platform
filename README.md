@@ -16,7 +16,7 @@ The ML notebook, trained model files, scaler files, datasets, and prediction int
 
 - `backend/HealthGuard.API` - ASP.NET Core API, EF Core models, controllers, services, migrations
 - `frontend` - React + Vite application
-- `ml` and `ml-model` - existing machine learning assets and API
+- `ml` - existing machine learning notebook, dataset, trained model files, results, and prediction API
 - `docs` - supporting project documentation
 
 ## Backend Setup
@@ -162,6 +162,63 @@ npm run dev
 ```
 
 Vite proxies `/api` and `/hubs` to the backend target configured by `VITE_API_PROXY_TARGET` or `http://localhost:5000`.
+
+## Machine Learning Setup
+
+The ML work is stored in the `ml` folder. It includes the heart disease dataset, the Jupyter notebook, saved model files, generated plots, and the FastAPI prediction service used by the HealthGuard backend.
+
+1. Create and activate a Python virtual environment from the project root:
+
+```powershell
+python -m venv ml\.venv
+ml\.venv\Scripts\Activate.ps1
+```
+
+On macOS or Linux:
+
+```bash
+python3 -m venv ml/.venv
+source ml/.venv/bin/activate
+```
+
+2. Install the ML requirements:
+
+```powershell
+pip install -r ml/requirements.txt
+```
+
+3. Run the Jupyter notebook:
+
+```powershell
+jupyter notebook ml/notebooks/healthguard_ml.ipynb
+```
+
+The dataset used by the notebook is:
+
+```text
+ml/dataset/heart.csv
+```
+
+Generated ML outputs are saved in:
+
+- `ml/models` for trained models, scalers, and column metadata
+- `ml/results` for plots, CSV summaries, and the generated PDF report
+- `ml/model_comparison_results.json` for the platform-readable model summary
+
+To run the ML prediction API used by the backend:
+
+```powershell
+cd ml/api
+uvicorn app:app --reload --port 8000
+```
+
+The backend reads the ML API base URL from `MlApi:BaseUrl` or `ML_API_BASE_URL`; by default it uses `http://localhost:8000`. When a user creates a prediction, the backend calls `POST /predict` on the Python API, stores the prediction result in SQL Server, refreshes Redis-backed prediction history caches, and sends notifications. If the Python API is not running, the backend falls back to its rule-based prediction service.
+
+The admin model summary and reports pages read exported model metrics from:
+
+```text
+ml/model_comparison_results.json
+```
 
 ## Authentication and Security
 
