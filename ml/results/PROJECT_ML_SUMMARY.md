@@ -57,6 +57,15 @@ The preprocessing pipeline included:
 
 Scaling was important because Logistic Regression, KNN and Neural Networks are sensitive to feature magnitude.
 
+The EDA plots are saved under `ml/results/plots`:
+
+- `class_distribution.png`
+- `missing_value_analysis.png`
+- `duplicate_record_analysis.png`
+- `numeric_feature_distributions.png`
+- `categorical_feature_distributions.png`
+- `correlation_heatmap.png`
+
 ## Classification Models Used
 
 The project evaluated several supervised classification models:
