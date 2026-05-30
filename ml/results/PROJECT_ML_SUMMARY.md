@@ -122,6 +122,54 @@ No final model achieved perfect 1.0 test metrics. Earlier exported perfect score
 
 The tuning process helped compare models fairly and reduced the risk of selecting a weak configuration by chance.
 
+## Classifier Evaluation Discussion
+
+### Logistic Regression
+
+Logistic Regression was one of the strongest all-feature models, with F1-score `0.8286` and ROC-AUC `0.8810`. Its main strength is interpretability: coefficients can be used to explain which features increase or decrease predicted risk. It trained quickly and remained stable in cross-validation with F1 mean `0.8539`. Its weakness is that it uses a mostly linear decision boundary, so it may miss complex interactions. There is little evidence of severe overfitting because regularization was selected during tuning, but the model can underfit if the true relationships are highly non-linear.
+
+### Logistic Regression with Feature Selection
+
+Logistic Regression with Feature Selection was the best final train-test model, with accuracy `0.8197`, precision `0.8235`, recall `0.8485`, F1-score `0.8358` and ROC-AUC `0.8799`. It improved the precision-recall balance compared with the full-feature version and used a simpler selected feature set. Cross-validation F1 mean was `0.8644`, which supports stable generalization. Its main weakness is that the selected feature set must be revalidated if the dataset changes. This model performed better than other final models because it kept the strongest clinical signals while reducing weaker or noisier inputs.
+
+### Decision Tree
+
+The Decision Tree was easy to interpret and achieved high recall (`0.8788`), but its precision (`0.7436`) and F1-score (`0.8056`) were lower than Logistic Regression, KNN and Random Forest. GridSearchCV selected a shallow tree with `max_depth=3`, which reduces overfitting risk but can also underfit because the tree cannot create many detailed split rules. It performed worse than Random Forest because a single tree is sensitive to individual split choices, while an ensemble averages many trees.
+
+### Decision Tree with Feature Selection
+
+Decision Tree with Feature Selection remained interpretable but had the weakest final F1-score (`0.7761`). Its lower recall (`0.7879`) shows that feature selection removed information this tree needed for useful splits. The result suggests underfitting: fewer features plus a shallow tree limited the model's ability to separate the classes. This is a useful finding because it shows feature selection does not help every model family.
+
+### KNN
+
+KNN matched full Logistic Regression on final F1-score (`0.8286`) and recall (`0.8788`). Its strength is that it can capture local non-linear patterns by comparing similar patients. Its weaknesses are lower interpretability, dependence on scaling and potentially slower prediction on larger datasets. GridSearchCV selected `n_neighbors=9` with `uniform` weights, which smooths predictions and reduces overfitting compared with very small `k`. KNN performed competitively, but it is less explainable and less convenient for HealthGuard deployment than Logistic Regression.
+
+### KNN with Feature Selection
+
+KNN with Feature Selection achieved final F1-score `0.8235` and had the strongest cross-validation F1 mean (`0.8716`) with low F1 standard deviation. This suggests stable behavior across folds, likely because feature selection improved distance quality by removing less useful dimensions. However, it did not beat Logistic Regression with Feature Selection on the final held-out test split and remains harder to explain to users.
+
+### Random Forest
+
+Random Forest achieved balanced final metrics: precision `0.8000`, recall `0.8485`, F1-score `0.8235` and ROC-AUC `0.8755`. It can model non-linear feature interactions better than Logistic Regression and performed better than a single Decision Tree. GridSearchCV selected `n_estimators=200`, `criterion=entropy` and `max_depth=3`. The shallow depth limits overfitting but may also limit model capacity. It did not outperform Logistic Regression with Feature Selection, which suggests the dataset is small enough that the extra ensemble complexity is not clearly beneficial.
+
+### Random Forest with Feature Selection
+
+Random Forest with Feature Selection had strong cross-validation F1 mean (`0.8661`) but a lower final test F1-score (`0.8116`) than the full Random Forest. The reduced feature set may have removed variables useful for tree splits. There is no evidence of unrealistic perfect-score overfitting, but the final result suggests some loss of useful split diversity or mild underfitting.
+
+### Neural Network Architecture 1
+
+Neural Network Architecture 1 used two hidden layers (`16 -> 8`) and achieved F1-score `0.8000`. Its strength is the ability to model non-linear relationships, and its precision (`0.8125`) was reasonable. Its weakness is that it did not outperform the best classical models, likely because the cleaned dataset is small for neural-network training. Cross-validation F1 mean was `0.8512`, but variation was higher than the most stable feature-selected models.
+
+### Neural Network Architecture 2
+
+Neural Network Architecture 2 used `32 -> Dropout -> 16 -> 8 -> output`. Dropout added regularization, but the final F1-score (`0.7941`) was lower than Architecture 1 and the main classical models. The added complexity did not improve performance on this tabular dataset. The result suggests the model may be too complex, too regularized or too data-limited for the available cleaned records.
+
+## Final HealthGuard Model Recommendation
+
+The recommended model for HealthGuard is **Logistic Regression with Feature Selection**. It achieved the best final F1-score (`0.8358`), the best final accuracy (`0.8197`), strong ROC-AUC (`0.8799`) and a good balance between precision and recall. It is also fast, easy to deploy and easier to explain than KNN, Random Forest or Neural Networks.
+
+This matters for HealthGuard because the platform should provide understandable health-risk feedback. A transparent Logistic Regression model can support prediction explanations and feature-importance discussion, while the selected feature set keeps the model simpler. For these reasons, Logistic Regression with Feature Selection is the strongest final candidate for the HealthGuard ML integration.
+
 ## Feature Selection Summary
 
 Feature selection was studied in multiple ways:
