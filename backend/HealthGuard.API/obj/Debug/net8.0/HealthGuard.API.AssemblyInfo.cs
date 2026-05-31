@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("HealthGuard.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+946c3de003bb180c9df0f26bc05bb1117b9dd97f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3872a2b97375d81e3689d66c67e4e5cdf8bb5acc")]
 [assembly: System.Reflection.AssemblyProductAttribute("HealthGuard.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("HealthGuard.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
