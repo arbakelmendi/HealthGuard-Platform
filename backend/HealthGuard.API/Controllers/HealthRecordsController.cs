@@ -222,6 +222,8 @@ public class HealthRecordsController : ControllerBase
         _dbContext.HealthRecords.Add(record);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
+        await CreateHealthRecordUpdatedNotificationAsync(userId, cancellationToken);
+
         return CreatedAtAction(nameof(GetHealthRecord), new { id = record.Id }, ToResponse(record));
     }
 
@@ -245,6 +247,8 @@ public class HealthRecordsController : ControllerBase
         ApplyHealthRecordFields(record, request);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await CreateHealthRecordUpdatedNotificationAsync(userId, cancellationToken);
 
         return Ok(ToResponse(record));
     }
@@ -435,5 +439,39 @@ public class HealthRecordsController : ControllerBase
         }
 
         return "same";
+    }
+
+    private async Task CreateHealthRecordUpdatedNotificationAsync(
+        int userId,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var minuteStart = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0, DateTimeKind.Utc);
+        var minuteEnd = minuteStart.AddMinutes(1);
+
+        var exists = await _dbContext.Notifications.AnyAsync(
+            notification => notification.UserId == userId
+                && notification.Source == NotificationSources.HealthRecord
+                && notification.Title == "Health Record Updated"
+                && notification.CreatedAt >= minuteStart
+                && notification.CreatedAt < minuteEnd,
+            cancellationToken);
+
+        if (exists)
+        {
+            return;
+        }
+
+        _dbContext.Notifications.Add(new Notification
+        {
+            UserId = userId,
+            Title = "Health Record Updated",
+            Message = "Your health information has been updated successfully.",
+            Type = NotificationTypes.Info,
+            Source = NotificationSources.HealthRecord,
+            CreatedAt = now
+        });
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }

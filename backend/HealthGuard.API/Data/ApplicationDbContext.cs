@@ -219,7 +219,7 @@ public class ApplicationDbContext : DbContext
                 {
                     notification.UserId,
                     notification.PredictionResultId,
-                    notification.Type
+                    notification.Title
                 })
                 .IsUnique()
                 .HasFilter("[PredictionResultId] IS NOT NULL");

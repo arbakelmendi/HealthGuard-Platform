@@ -107,7 +107,7 @@ public class PredictionsController : ControllerBase
         _dbContext.PredictionResults.Add(result);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        await CreatePredictionNotificationAsync(result, cancellationToken);
+        await CreatePredictionNotificationsAsync(result, cancellationToken);
 
         return Ok(ToResponse(result));
     }
@@ -342,10 +342,17 @@ public class PredictionsController : ControllerBase
         }
     }
 
-    private async Task CreatePredictionNotificationAsync(
+    private async Task CreatePredictionNotificationsAsync(
         PredictionResult prediction,
         CancellationToken cancellationToken)
     {
+        await AddPredictionNotificationIfMissingAsync(
+            prediction,
+            title: "Prediction Completed",
+            message: "A new health prediction has been generated successfully. View your results now.",
+            type: NotificationTypes.Info,
+            cancellationToken);
+
         string? type = null;
         if (prediction.RiskLevel.Equals("High", StringComparison.OrdinalIgnoreCase) || prediction.RiskScore >= 70)
         {
@@ -362,10 +369,25 @@ public class PredictionsController : ControllerBase
             return;
         }
 
+        await AddPredictionNotificationIfMissingAsync(
+            prediction,
+            title: type == NotificationTypes.Alert ? "Health Risk Alert" : "Health Risk Update",
+            message: $"Your latest health prediction shows {prediction.RiskLevel} risk with a score of {prediction.RiskScore}. Please review your health recommendations.",
+            type,
+            cancellationToken);
+    }
+
+    private async Task AddPredictionNotificationIfMissingAsync(
+        PredictionResult prediction,
+        string title,
+        string message,
+        string type,
+        CancellationToken cancellationToken)
+    {
         var exists = await _dbContext.Notifications.AnyAsync(
             notification => notification.PredictionResultId == prediction.Id
                 && notification.UserId == prediction.UserId
-                && notification.Type == type,
+                && notification.Title == title,
             cancellationToken);
 
         if (exists)
@@ -376,8 +398,8 @@ public class PredictionsController : ControllerBase
         var notification = new Notification
         {
             UserId = prediction.UserId,
-            Title = type == NotificationTypes.Alert ? "Health Risk Alert" : "Health Risk Update",
-            Message = $"Your latest health prediction shows {prediction.RiskLevel} risk with a score of {prediction.RiskScore}. Please review your health recommendations.",
+            Title = title,
+            Message = message,
             Type = type,
             Source = NotificationSources.Prediction,
             PredictionResultId = prediction.Id,
