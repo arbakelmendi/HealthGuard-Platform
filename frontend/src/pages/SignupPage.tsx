@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Activity, ArrowLeft, ArrowRight, UserPlus } from "lucide-react";
+import { ArrowLeft, ArrowRight, HeartPulse, ShieldCheck, Sparkles, Stethoscope, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -231,22 +231,51 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-2xl mx-auto space-y-6">
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mx-auto shadow-glow">
-            <Activity className="w-7 h-7 text-primary-foreground" />
+    <div className="min-h-screen grid bg-background lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="relative hidden overflow-hidden lg:block gradient-hero">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_15%,rgba(255,255,255,0.36),transparent_45%)]" />
+        <div className="relative flex h-full flex-col p-12 text-white">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="grid size-11 place-items-center rounded-2xl border border-white/20 bg-white/15 backdrop-blur">
+              <Stethoscope className="size-6" />
+            </div>
+            <span className="font-display text-xl font-bold">HealthGuard</span>
+          </Link>
+          <div className="my-auto max-w-md">
+            <p className="mb-4 text-sm uppercase tracking-[0.24em] text-white/70">Personalized risk intelligence</p>
+            <h1 className="font-display text-5xl font-bold leading-tight">Build your health baseline in minutes.</h1>
+            <p className="mt-5 text-white/78">The registration flow still uses the current HealthGuard backend and creates a real account.</p>
+            <div className="mt-10 grid grid-cols-3 gap-3">
+              {[
+                { icon: HeartPulse, label: "Vitals" },
+                { icon: ShieldCheck, label: "Secure" },
+                { icon: Sparkles, label: "AI ready" },
+              ].map(({ icon: Icon, label }) => (
+                <div key={label} className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                  <Icon className="size-5" />
+                  <div className="mt-3 text-xs text-white/80">{label}</div>
+                </div>
+              ))}
+            </div>
           </div>
-          <h1 className="text-3xl font-display font-bold">HealthGuard</h1>
-          <p className="text-muted-foreground text-sm">Create your account</p>
         </div>
+      </div>
 
-        <Card className="shadow-card">
-          <CardHeader className="text-center pb-2">
-            <CardTitle className="text-xl font-display">Sign Up</CardTitle>
-            <CardDescription>{step === 1 ? "Step 1 of 2: Account Information" : "Step 2 of 2: Personal and Health Information"}</CardDescription>
+      <div className="flex items-center justify-center p-6 md:p-10">
+        <div className="w-full max-w-3xl">
+          <Link to="/" className="mb-8 flex items-center gap-3 lg:hidden">
+            <div className="grid size-10 place-items-center rounded-2xl gradient-primary">
+              <Stethoscope className="size-5 text-white" />
+            </div>
+            <span className="font-display text-lg font-bold">HealthGuard</span>
+          </Link>
+
+          <Card className="border-0 bg-transparent shadow-none">
+          <CardHeader className="px-0 pb-6">
+            <CardTitle className="font-display text-3xl">Create account</CardTitle>
+            <CardDescription>{step === 1 ? "Step 1 of 2: Account information" : "Step 2 of 2: Personal and health information"}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-0">
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               {step === 1 ? (
                 <>
@@ -460,6 +489,7 @@ export default function SignupPage() {
             </p>
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );

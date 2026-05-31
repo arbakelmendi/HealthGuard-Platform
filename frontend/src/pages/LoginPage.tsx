@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Activity, LogIn } from "lucide-react";
+import { ArrowRight, Heart, ShieldCheck, Sparkles, Stethoscope } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,12 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const getLoginErrorMessage = (error: unknown) => {
+  const response = (error as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }).response?.data;
+  const firstValidationError = response?.errors ? Object.values(response.errors)[0]?.[0] : undefined;
+  return firstValidationError ?? response?.message ?? (error instanceof Error ? error.message : "Unable to sign in.");
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -44,7 +50,7 @@ export default function LoginPage() {
       navigate(from && from !== "/login" ? from : user.role === "admin" ? "/admin/users" : "/", { replace: true });
     } catch (err) {
       console.error("API ERROR:", err);
-      const message = err instanceof Error ? err.message : "Unable to sign in.";
+      const message = getLoginErrorMessage(err);
       setError(message);
       toast.error(message);
     } finally {
@@ -53,54 +59,88 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md mx-auto space-y-6">
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mx-auto shadow-glow">
-            <Activity className="w-7 h-7 text-primary-foreground" />
+    <div className="min-h-screen grid lg:grid-cols-2 bg-background">
+      <div className="relative hidden overflow-hidden lg:block gradient-hero">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.42),transparent_45%)]" />
+        <div className="relative flex h-full flex-col p-12 text-white">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="grid size-11 place-items-center rounded-2xl border border-white/20 bg-white/15 backdrop-blur">
+              <Stethoscope className="size-6" />
+            </div>
+            <span className="font-display text-xl font-bold">HealthGuard</span>
+          </Link>
+          <div className="my-auto max-w-lg">
+            <p className="mb-4 text-sm uppercase tracking-[0.24em] text-white/70">AI health intelligence</p>
+            <h1 className="font-display text-5xl font-bold leading-tight">Welcome back. Your HealthScore is waiting.</h1>
+            <p className="mt-5 max-w-md text-white/78">
+              Sign in to continue tracking risk signals, recommendations, and admin workflows with the connected HealthGuard backend.
+            </p>
+            <div className="mt-10 grid grid-cols-3 gap-3">
+              {[
+                { icon: Heart, label: "Cardio" },
+                { icon: ShieldCheck, label: "Protected" },
+                { icon: Sparkles, label: "Insights" },
+              ].map(({ icon: Icon, label }) => (
+                <div key={label} className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                  <Icon className="size-5" />
+                  <div className="mt-3 text-xs text-white/80">{label}</div>
+                </div>
+              ))}
+            </div>
           </div>
-          <h1 className="text-3xl font-display font-bold">HealthGuard</h1>
-          <p className="text-muted-foreground text-sm">AI Health Intelligence Platform</p>
         </div>
+      </div>
 
-        <Card className="shadow-card">
-          <CardHeader className="text-center pb-2">
-            <CardTitle className="text-xl font-display">Sign In</CardTitle>
-            <CardDescription>Enter your credentials to continue</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex items-center justify-center p-6 md:p-12">
+        <div className="w-full max-w-md">
+          <Link to="/" className="mb-8 flex items-center gap-3 lg:hidden">
+            <div className="grid size-10 place-items-center rounded-2xl gradient-primary">
+              <Stethoscope className="size-5 text-white" />
+            </div>
+            <span className="font-display text-lg font-bold">HealthGuard</span>
+          </Link>
+
+          <Card className="border-0 bg-transparent shadow-none">
+            <CardHeader className="px-0 pb-6">
+              <CardTitle className="font-display text-3xl">Sign in</CardTitle>
+              <CardDescription className="text-base">Continue to your dashboard.</CardDescription>
+            </CardHeader>
+            <CardContent className="px-0">
+              <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input id="email" type="email" placeholder="you@health.io" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">
+                    Forgot?
+                  </Link>
+                </div>
                 <Input id="password" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
                 <label className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Checkbox checked={rememberMe} onCheckedChange={(checked) => setRememberMe(checked === true)} />
                   Remember me
                 </label>
-                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
-                  Forgot password?
-                </Link>
               </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full gradient-primary text-primary-foreground" disabled={loading}>
-                <LogIn className="w-4 h-4 mr-2" />
-                {loading ? "Signing in..." : "Sign In"}
+              {error && <p className="rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+              <Button type="submit" className="h-12 w-full" disabled={loading}>
+                {loading ? "Signing in..." : "Sign in"}
+                <ArrowRight className="ml-2 size-4" />
               </Button>
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
-              Don't have an account?{" "}
+              New to HealthGuard?{" "}
               <Link to="/signup" className="text-primary hover:underline">
-                Sign up
+                Create an account
               </Link>
             </p>
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );
