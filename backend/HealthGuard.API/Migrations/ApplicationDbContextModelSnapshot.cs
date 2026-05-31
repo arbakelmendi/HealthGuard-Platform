@@ -30,6 +30,11 @@ namespace HealthGuard.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ActivityLevel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<int>("Age")
                         .HasColumnType("int");
 
@@ -38,8 +43,25 @@ namespace HealthGuard.API.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<decimal>("BloodSugar")
+                        .HasColumnType("decimal(7,2)");
+
+                    b.Property<decimal>("Bmi")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("Cholesterol")
+                        .HasColumnType("decimal(7,2)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("DiastolicBp")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Gender")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<decimal>("Glucose")
                         .HasColumnType("decimal(7,2)");
@@ -50,10 +72,35 @@ namespace HealthGuard.API.Migrations
                     b.Property<decimal>("Height")
                         .HasColumnType("decimal(6,2)");
 
+                    b.Property<decimal>("HeightCm")
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<decimal>("SleepHours")
+                        .HasColumnType("decimal(4,1)");
+
+                    b.Property<string>("SmokingStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("StressLevel")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Symptoms")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("SystolicBp")
+                        .HasColumnType("int");
+
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Weight")
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<decimal>("WeightKg")
                         .HasColumnType("decimal(6,2)");
 
                     b.HasKey("Id");
@@ -61,6 +108,54 @@ namespace HealthGuard.API.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("HealthRecords");
+                });
+
+            modelBuilder.Entity("HealthGuard.API.Models.PredictionResult", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContributingFactors")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Explanation")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("HealthRecordId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ModelName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RiskLevel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("RiskScore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HealthRecordId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PredictionResults");
                 });
 
             modelBuilder.Entity("HealthGuard.API.Models.User", b =>
@@ -164,9 +259,34 @@ namespace HealthGuard.API.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("HealthGuard.API.Models.PredictionResult", b =>
+                {
+                    b.HasOne("HealthGuard.API.Models.HealthRecord", "HealthRecord")
+                        .WithMany("PredictionResults")
+                        .HasForeignKey("HealthRecordId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("HealthGuard.API.Models.User", "User")
+                        .WithMany("PredictionResults")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("HealthRecord");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("HealthGuard.API.Models.HealthRecord", b =>
+                {
+                    b.Navigation("PredictionResults");
+                });
+
             modelBuilder.Entity("HealthGuard.API.Models.User", b =>
                 {
                     b.Navigation("HealthRecords");
+
+                    b.Navigation("PredictionResults");
                 });
 #pragma warning restore 612, 618
         }

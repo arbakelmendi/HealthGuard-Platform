@@ -64,4 +64,6 @@ public class User
     public string FullName => $"{FirstName} {LastName}".Trim();
 
     public ICollection<HealthRecord> HealthRecords { get; set; } = new List<HealthRecord>();
+
+    public ICollection<PredictionResult> PredictionResults { get; set; } = new List<PredictionResult>();
 }

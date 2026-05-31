@@ -6,9 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Brain, AlertTriangle, CheckCircle, Zap } from "lucide-react";
+import { healthRecordsApi, predictionsApi, type HealthRecordResponse } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 type RiskResult = {
   level: "Low" | "Medium" | "High";
@@ -17,22 +20,121 @@ type RiskResult = {
   factors: string[];
 };
 
+type ValidationErrors = Record<string, string[]>;
+
+const parseBloodPressure = (bloodPressure: string) => {
+  const match = bloodPressure?.match(/^(\d{2,3})\s*\/\s*(\d{2,3})$/);
+  return {
+    systolicBp: match ? Number(match[1]) : 0,
+    diastolicBp: match ? Number(match[2]) : 0,
+  };
+};
+
 export default function RiskAssessmentPage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<RiskResult | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [latestRecord, setLatestRecord] = useState<HealthRecordResponse | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [form, setForm] = useState({
+    age: user?.age?.toString() ?? "32",
+    gender: user?.gender ?? "female",
+    heightCm: user?.height?.toString() ?? "170",
+    weightKg: user?.weight?.toString() ?? "76",
+    systolicBp: "130",
+    diastolicBp: "85",
+    bloodSugar: "110",
+    cholesterol: "210",
+    activityLevel: user?.activityLevel?.toLowerCase() ?? "low",
+    sleepHours: "6.5",
+    stressLevel: "5",
+    smokingStatus: user?.smokingStatus?.toLowerCase() ?? "never",
+    symptoms: "headache fatigue",
+  });
 
-  const runPrediction = () => {
+  useEffect(() => {
+    if (!user?.id) return;
+
+    healthRecordsApi.getLatestHealthRecord(Number(user.id))
+      .then((record) => {
+        const parsedBp = parseBloodPressure(record.bloodPressure);
+        setLatestRecord(record);
+        setForm({
+          age: String(record.age),
+          gender: record.gender || "female",
+          heightCm: String(record.heightCm || record.height),
+          weightKg: String(record.weightKg || record.weight),
+          systolicBp: String(record.systolicBp || parsedBp.systolicBp || 120),
+          diastolicBp: String(record.diastolicBp || parsedBp.diastolicBp || 80),
+          bloodSugar: String(record.bloodSugar || record.glucose),
+          cholesterol: String(record.cholesterol || 190),
+          activityLevel: record.activityLevel?.toLowerCase() || "low",
+          sleepHours: String(record.sleepHours || 7),
+          stressLevel: String(record.stressLevel || 4),
+          smokingStatus: record.smokingStatus?.toLowerCase() || "never",
+          symptoms: record.symptoms || "none",
+        });
+        setHasChanges(false);
+      })
+      .catch((error) => {
+        if (error?.response?.status !== 404) {
+          toast.error("Could not load your latest health profile.");
+        }
+      });
+  }, [user?.id]);
+
+  const updateField = (field: keyof typeof form, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setHasChanges(true);
+  };
+
+  const fieldError = (field: string) => validationErrors[field]?.[0] ?? validationErrors[`$.${field}`]?.[0];
+
+  const runPrediction = async () => {
+    if (!user?.id) {
+      toast.error("Please sign in before running a prediction.");
+      return;
+    }
+
     setLoading(true);
     setResult(null);
-    setTimeout(() => {
-      setResult({
-        level: "High",
-        score: 72,
-        explanation: "Based on your current BMI of 26.2, low physical activity (2 days/week), and elevated stress levels, our AI model has determined a high risk probability. Immediate lifestyle adjustments are recommended.",
-        factors: ["Elevated BMI (26.2)", "Low physical activity", "High stress indicators", "Irregular sleep pattern"],
+    setValidationErrors({});
+
+    try {
+      const prediction = await predictionsApi.predict({
+        userId: Number(user.id),
+        healthRecordId: latestRecord && !hasChanges ? latestRecord.id : undefined,
+        age: Number(form.age),
+        gender: form.gender,
+        heightCm: Number(form.heightCm),
+        weightKg: Number(form.weightKg),
+        systolicBp: Number(form.systolicBp),
+        diastolicBp: Number(form.diastolicBp),
+        bloodSugar: Number(form.bloodSugar),
+        cholesterol: Number(form.cholesterol),
+        activityLevel: form.activityLevel,
+        sleepHours: Number(form.sleepHours),
+        stressLevel: Number(form.stressLevel),
+        smokingStatus: form.smokingStatus,
+        symptoms: form.symptoms,
       });
+
+      setResult({
+        level: prediction.riskLevel,
+        score: prediction.riskScore,
+        explanation: prediction.explanation,
+        factors: prediction.contributingFactors,
+      });
+    } catch (error) {
+      const response = (error as { response?: { data?: { errors?: ValidationErrors; message?: string } } }).response?.data;
+      if (response?.errors) {
+        setValidationErrors(response.errors);
+      }
+      toast.error(response?.message ?? "Prediction failed. Please review your inputs.");
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
 
   const riskStyle = result?.level === "High"
@@ -57,14 +159,56 @@ export default function RiskAssessmentPage() {
             <CardHeader><CardTitle className="text-base font-display">Input Parameters</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>Age</Label><Input type="number" defaultValue="32" /></div>
-                <div className="space-y-2"><Label>BMI</Label><Input type="number" defaultValue="26.2" /></div>
-                <div className="space-y-2"><Label>Blood Pressure</Label><Input defaultValue="130/85" /></div>
-                <div className="space-y-2"><Label>Blood Sugar</Label><Input type="number" defaultValue="110" /></div>
+                <div className="space-y-2">
+                  <Label>Age</Label>
+                  <Input type="number" value={form.age} onChange={(e) => updateField("age", e.target.value)} />
+                  {fieldError("Age") && <p className="text-xs text-health-danger">{fieldError("Age")}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Gender</Label>
+                  <Select value={form.gender} onValueChange={(value) => updateField("gender", value)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Height (cm)</Label>
+                  <Input type="number" value={form.heightCm} onChange={(e) => updateField("heightCm", e.target.value)} />
+                  {fieldError("HeightCm") && <p className="text-xs text-health-danger">{fieldError("HeightCm")}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Weight (kg)</Label>
+                  <Input type="number" value={form.weightKg} onChange={(e) => updateField("weightKg", e.target.value)} />
+                  {fieldError("WeightKg") && <p className="text-xs text-health-danger">{fieldError("WeightKg")}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Systolic BP</Label>
+                  <Input type="number" value={form.systolicBp} onChange={(e) => updateField("systolicBp", e.target.value)} />
+                  {fieldError("SystolicBp") && <p className="text-xs text-health-danger">{fieldError("SystolicBp")}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Diastolic BP</Label>
+                  <Input type="number" value={form.diastolicBp} onChange={(e) => updateField("diastolicBp", e.target.value)} />
+                  {fieldError("DiastolicBp") && <p className="text-xs text-health-danger">{fieldError("DiastolicBp")}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Blood Sugar</Label>
+                  <Input type="number" value={form.bloodSugar} onChange={(e) => updateField("bloodSugar", e.target.value)} />
+                  {fieldError("BloodSugar") && <p className="text-xs text-health-danger">{fieldError("BloodSugar")}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Cholesterol</Label>
+                  <Input type="number" value={form.cholesterol} onChange={(e) => updateField("cholesterol", e.target.value)} />
+                  {fieldError("Cholesterol") && <p className="text-xs text-health-danger">{fieldError("Cholesterol")}</p>}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Activity Level</Label>
-                <Select defaultValue="low">
+                <Select value={form.activityLevel} onValueChange={(value) => updateField("activityLevel", value)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="sedentary">Sedentary</SelectItem>
@@ -74,15 +218,38 @@ export default function RiskAssessmentPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Sleep Hours</Label>
+                  <Input type="number" step="0.5" value={form.sleepHours} onChange={(e) => updateField("sleepHours", e.target.value)} />
+                  {fieldError("SleepHours") && <p className="text-xs text-health-danger">{fieldError("SleepHours")}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Stress Level</Label>
+                  <Input type="number" value={form.stressLevel} onChange={(e) => updateField("stressLevel", e.target.value)} />
+                  {fieldError("StressLevel") && <p className="text-xs text-health-danger">{fieldError("StressLevel")}</p>}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Smoking Status</Label>
+                <Select value={form.smokingStatus} onValueChange={(value) => updateField("smokingStatus", value)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="never">Never</SelectItem>
+                    <SelectItem value="former">Former</SelectItem>
+                    <SelectItem value="current">Current</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label>Recent Symptoms</Label>
-                <Select defaultValue="headache">
+                <Select value={form.symptoms} onValueChange={(value) => updateField("symptoms", value)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="headache">Headache, Fatigue</SelectItem>
-                    <SelectItem value="pain">Chest Pain</SelectItem>
-                    <SelectItem value="breath">Shortness of Breath</SelectItem>
+                    <SelectItem value="headache fatigue">Headache, Fatigue</SelectItem>
+                    <SelectItem value="chest pain">Chest Pain</SelectItem>
+                    <SelectItem value="shortness of breath">Shortness of Breath</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

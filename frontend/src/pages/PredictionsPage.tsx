@@ -3,13 +3,46 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { predictionHistoryData, riskOverTimeData } from "@/lib/mockData";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { predictionsApi, type PredictHealthRiskResponse } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export default function PredictionsPage() {
+  const { user } = useAuth();
   const [filter, setFilter] = useState("all");
-  const filtered = filter === "all" ? predictionHistoryData : predictionHistoryData.filter(p => p.riskLevel === filter);
+  const [predictions, setPredictions] = useState<PredictHealthRiskResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    setLoading(true);
+    predictionsApi.getByUser(Number(user.id))
+      .then(setPredictions)
+      .catch(() => toast.error("Could not load prediction history."))
+      .finally(() => setLoading(false));
+  }, [user?.id]);
+
+  const filtered = filter === "all" ? predictions : predictions.filter(p => p.riskLevel === filter);
+
+  const riskOverTimeData = useMemo(() => {
+    const byMonth = new Map<string, { total: number; count: number }>();
+
+    predictions.forEach((prediction) => {
+      const date = new Date(prediction.createdAt);
+      const month = date.toLocaleString(undefined, { month: "short" });
+      const current = byMonth.get(month) ?? { total: 0, count: 0 };
+      byMonth.set(month, { total: current.total + prediction.riskScore, count: current.count + 1 });
+    });
+
+    return Array.from(byMonth.entries()).map(([month, value]) => ({
+      month,
+      risk: Math.round(value.total / value.count),
+      predictions: value.count,
+    }));
+  }, [predictions]);
 
   const riskColor = (level: string) =>
     level === "High" ? "gradient-risk-high text-primary-foreground" :
@@ -34,7 +67,7 @@ export default function PredictionsPage() {
                 <YAxis fontSize={12} stroke="hsl(215, 12%, 50%)" />
                 <Tooltip />
                 <Bar dataKey="risk" fill="hsl(215, 90%, 32%)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="activity" fill="hsl(168, 72%, 40%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="predictions" fill="hsl(168, 72%, 40%)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -60,16 +93,34 @@ export default function PredictionsPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>Risk Level</TableHead>
                   <TableHead>Score</TableHead>
+                  <TableHead>Health Data</TableHead>
                   <TableHead>Key Factors</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {loading && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">Loading predictions...</TableCell>
+                  </TableRow>
+                )}
+                {!loading && filtered.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">No predictions found.</TableCell>
+                  </TableRow>
+                )}
                 {filtered.map(p => (
-                  <TableRow key={p.id}>
-                    <TableCell className="text-sm">{p.date}</TableCell>
+                  <TableRow key={p.predictionId}>
+                    <TableCell className="text-sm">{new Date(p.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell><Badge className={riskColor(p.riskLevel)}>{p.riskLevel}</Badge></TableCell>
-                    <TableCell className="font-mono font-semibold">{p.score}%</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{p.factors}</TableCell>
+                    <TableCell className="font-mono font-semibold">{p.riskScore}%</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {p.healthRecord
+                        ? `BMI ${Number(p.healthRecord.bmi).toFixed(1)}, BP ${p.healthRecord.bloodPressure}`
+                        : p.healthRecordId
+                        ? `Record #${p.healthRecordId}`
+                        : "No linked record"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{p.contributingFactors.join(", ") || "None significant"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
