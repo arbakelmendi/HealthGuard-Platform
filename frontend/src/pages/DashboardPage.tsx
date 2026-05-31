@@ -7,6 +7,7 @@ import {
   Brain,
   Droplet,
   Heart,
+  LayoutDashboard,
   MessageSquareHeart,
   Moon,
   Plus,
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { aiInsights, healthTrendsData, notificationsData, predictionHistoryData } from "@/lib/mockData";
 import { useAuth } from "@/contexts/AuthContext";
+import { UserPageContainer } from "@/components/PageContainers";
 
 const pillars = [
   { label: "Cardio", value: 88, icon: Heart },
@@ -41,11 +43,13 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <UserPageContainer>
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</p>
-            <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">Good morning, {displayName}.</h1>
+            <h1 className="flex items-center gap-2 font-display text-3xl font-bold tracking-tight md:text-4xl">
+              <LayoutDashboard className="h-7 w-7 text-[#14B8C4] stroke-[2.25]" /> Good morning, {displayName}.
+            </h1>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline">
@@ -233,7 +237,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </UserPageContainer>
     </DashboardLayout>
   );
 }

@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { adminUsersData } from "@/lib/mockData";
 import { Users, Settings, FileText, Activity } from "lucide-react";
+import { AdminPageContainer } from "@/components/PageContainers";
 
 export default function AdminPage() {
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <AdminPageContainer>
         <div>
-          <h1 className="text-2xl font-display font-bold">Admin Panel</h1>
+          <h1 className="text-2xl font-display font-bold flex items-center gap-2"><Settings className="h-7 w-7 text-cyan-400" /> Admin Panel</h1>
           <p className="text-muted-foreground text-sm">System management and configuration.</p>
         </div>
 
@@ -95,7 +96,7 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+      </AdminPageContainer>
     </DashboardLayout>
   );
 }

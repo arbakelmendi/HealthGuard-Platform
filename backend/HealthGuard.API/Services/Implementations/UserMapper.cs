@@ -20,7 +20,6 @@ internal static class UserMapper
             Weight = user.Weight,
             Height = user.Height,
             Phone = user.Phone,
-            City = user.City,
             BloodType = user.BloodType,
             ActivityLevel = user.ActivityLevel,
             ChronicConditions = user.ChronicConditions,

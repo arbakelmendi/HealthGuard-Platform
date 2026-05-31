@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { authService } from "@/services/authService";
 import { usersApi } from "@/services/usersApi";
 import type { AdminCreateUserRequest, AdminUpdateUserRequest, AuthUser, UserRole, UserStatus } from "@/types/auth";
+import { AdminPageContainer } from "@/components/PageContainers";
 
 type UserForm = {
   firstName: string;
@@ -29,7 +30,6 @@ type UserForm = {
   weight: string;
   height: string;
   phone: string;
-  city: string;
   bloodType: string;
   activityLevel: string;
   chronicConditions: string;
@@ -49,7 +49,6 @@ const emptyForm: UserForm = {
   weight: "",
   height: "",
   phone: "",
-  city: "",
   bloodType: "",
   activityLevel: "",
   chronicConditions: "",
@@ -76,7 +75,6 @@ const userToForm = (user: AuthUser): UserForm => ({
   weight: user.weight?.toString() || "",
   height: user.height?.toString() || "",
   phone: user.phone || "",
-  city: user.city || "",
   bloodType: user.bloodType || "",
   activityLevel: user.activityLevel || "",
   chronicConditions: user.chronicConditions || "",
@@ -106,7 +104,6 @@ const toCreatePayload = (form: UserForm): AdminCreateUserRequest => ({
   weight: form.weight ? Number(form.weight) : undefined,
   height: form.height ? Number(form.height) : undefined,
   phone: form.phone || undefined,
-  city: form.city || undefined,
   bloodType: form.bloodType || undefined,
   activityLevel: form.activityLevel || undefined,
   chronicConditions: form.chronicConditions || undefined,
@@ -125,7 +122,6 @@ const toUpdatePayload = (form: UserForm): AdminUpdateUserRequest => ({
   weight: form.weight ? Number(form.weight) : undefined,
   height: form.height ? Number(form.height) : undefined,
   phone: form.phone || undefined,
-  city: form.city || undefined,
   bloodType: form.bloodType || undefined,
   activityLevel: form.activityLevel || undefined,
   chronicConditions: form.chronicConditions || undefined,
@@ -232,10 +228,10 @@ export default function UsersManagementPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <AdminPageContainer>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-display font-bold flex items-center gap-2"><Users className="w-6 h-6" /> Users Management</h1>
+            <h1 className="text-2xl font-display font-bold flex items-center gap-2"><Users className="h-7 w-7 text-cyan-400" /> Users Management</h1>
             <p className="text-muted-foreground text-sm">Manage platform users, roles, health profiles, and access.</p>
           </div>
           <Button className="gradient-primary text-primary-foreground" onClick={openCreate}>
@@ -296,7 +292,7 @@ export default function UsersManagementPage() {
                       <TableCell>
                         <div>
                           <p className="font-medium">{item.fullName}</p>
-                          <p className="text-xs text-muted-foreground">{[item.age ? `${item.age} yrs` : "", item.city].filter(Boolean).join(" / ") || "Profile pending"}</p>
+                          <p className="text-xs text-muted-foreground">{item.age ? `${item.age} yrs` : "Profile pending"}</p>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{item.email}</TableCell>
@@ -325,7 +321,7 @@ export default function UsersManagementPage() {
             </Table>
           </CardContent>
         </Card>
-      </div>
+      </AdminPageContainer>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -403,10 +399,6 @@ export default function UsersManagementPage() {
               <div className="space-y-2">
                 <Label>Phone</Label>
                 <Input value={form.phone} onChange={(e) => setField("phone", e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>City</Label>
-                <Input value={form.city} onChange={(e) => setField("city", e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Blood Type</Label>

@@ -70,9 +70,10 @@ public class MachineLearningPredictionService
                 CalculateBmi(heightCm, weightKg),
                 ModelName);
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        catch (Exception ex) when (
+            ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
-            _logger.LogWarning(ex, "ML prediction API is unavailable. Falling back to rule-based prediction.");
+            _logger.LogWarning(ex, "ML prediction could not be completed. Falling back to rule-based prediction.");
             return null;
         }
     }

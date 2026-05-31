@@ -8,14 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
+import { Settings as SettingsIcon } from "lucide-react";
+import { AdminPageContainer } from "@/components/PageContainers";
 
 export default function SettingsPage() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, isAdmin } = useAuth();
   const [form, setForm] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
     phone: user?.phone || "",
-    city: user?.city || "",
   });
 
   useEffect(() => {
@@ -23,7 +24,6 @@ export default function SettingsPage() {
       firstName: user?.firstName || "",
       lastName: user?.lastName || "",
       phone: user?.phone || "",
-      city: user?.city || "",
     });
   }, [user]);
 
@@ -38,9 +38,11 @@ export default function SettingsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-3xl mx-auto">
+      <AdminPageContainer>
         <div>
-          <h1 className="text-2xl font-display font-bold">Settings</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-display font-bold">
+            <SettingsIcon className={isAdmin ? "h-7 w-7 text-cyan-400" : "h-6 w-6 text-[#14B8C4] stroke-[2.25]"} /> Settings
+          </h1>
           <p className="text-muted-foreground text-sm">Manage your account and preferences.</p>
         </div>
 
@@ -63,10 +65,6 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label>Phone</Label>
                 <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>City</Label>
-                <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
               </div>
             </div>
             <Button onClick={() => void saveAccount()} className="gradient-primary text-primary-foreground">Save Changes</Button>
@@ -102,7 +100,7 @@ export default function SettingsPage() {
         </Card>
 
         <Separator />
-      </div>
+      </AdminPageContainer>
     </DashboardLayout>
   );
 }

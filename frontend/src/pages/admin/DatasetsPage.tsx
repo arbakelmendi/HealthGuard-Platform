@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { datasetsData } from "@/lib/mockData";
 import { Database, Upload, Eye, Archive, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { AdminPageContainer } from "@/components/PageContainers";
 
 export default function DatasetsPage() {
   const statusColor = (status: string) => {
@@ -19,10 +20,10 @@ export default function DatasetsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <AdminPageContainer>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-display font-bold flex items-center gap-2"><Database className="w-6 h-6" /> Datasets</h1>
+            <h1 className="text-2xl font-display font-bold flex items-center gap-2"><Database className="h-7 w-7 text-cyan-400" /> Datasets</h1>
             <p className="text-muted-foreground text-sm">Manage training and evaluation datasets.</p>
           </div>
           <Button className="gradient-primary text-primary-foreground" onClick={() => toast.success("Upload dialog opened (simulated)")}>
@@ -47,7 +48,9 @@ export default function DatasetsPage() {
         </div>
 
         <Card className="shadow-card">
-          <CardHeader><CardTitle className="text-base font-display">All Datasets</CardTitle></CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
+            <CardTitle className="text-base font-display">All Datasets</CardTitle>
+          </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
@@ -83,7 +86,7 @@ export default function DatasetsPage() {
             </Table>
           </CardContent>
         </Card>
-      </div>
+      </AdminPageContainer>
     </DashboardLayout>
   );
 }

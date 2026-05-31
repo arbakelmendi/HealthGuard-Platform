@@ -8,6 +8,8 @@ import { useEffect, useMemo, useState } from "react";
 import { predictionsApi, type PredictHealthRiskResponse } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { BarChart3 } from "lucide-react";
+import { UserPageContainer } from "@/components/PageContainers";
 
 export default function PredictionsPage() {
   const { user } = useAuth();
@@ -51,9 +53,11 @@ export default function PredictionsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <UserPageContainer>
         <div>
-          <h1 className="text-2xl font-display font-bold">Predictions</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-display font-bold">
+            <BarChart3 className="h-6 w-6 text-[#14B8C4] stroke-[2.25]" /> Predictions
+          </h1>
           <p className="text-muted-foreground text-sm">History of AI risk predictions and trends.</p>
         </div>
 
@@ -127,7 +131,7 @@ export default function PredictionsPage() {
             </Table>
           </CardContent>
         </Card>
-      </div>
+      </UserPageContainer>
     </DashboardLayout>
   );
 }

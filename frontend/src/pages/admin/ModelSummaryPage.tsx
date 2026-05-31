@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { mlModelsData } from "@/lib/mockData";
 import { Brain, TrendingUp, Target, Zap } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminPageContainer } from "@/components/PageContainers";
 
 function MetricBar({ label, value }: { label: string; value: number }) {
   return (
@@ -21,9 +22,9 @@ function MetricBar({ label, value }: { label: string; value: number }) {
 export default function ModelSummaryPage() {
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <AdminPageContainer>
         <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2"><Brain className="w-6 h-6" /> Model Summary</h1>
+          <h1 className="text-2xl font-display font-bold flex items-center gap-2"><Brain className="h-7 w-7 text-cyan-400" /> Model Summary</h1>
           <p className="text-muted-foreground text-sm">Overview of all trained models and their performance.</p>
         </div>
 
@@ -144,7 +145,7 @@ export default function ModelSummaryPage() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
+      </AdminPageContainer>
     </DashboardLayout>
   );
 }

@@ -31,7 +31,6 @@ const mapUser = (user: AuthResponse["user"]): AuthUser => ({
   weight: user.weight,
   height: user.height,
   phone: user.phone,
-  city: user.city,
   bloodType: user.bloodType,
   activityLevel: user.activityLevel,
   chronicConditions: user.chronicConditions,

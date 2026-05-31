@@ -43,6 +43,7 @@ const userNav = [
 ];
 
 const adminNav = [
+  { to: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/admin/users", icon: Users, label: "Users" },
   { to: "/admin/predictions", icon: Brain, label: "Predictions" },
   { to: "/admin/datasets", icon: Database, label: "Datasets" },
@@ -51,6 +52,8 @@ const adminNav = [
   { to: "/notifications", icon: Bell, label: "Notifications" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
+
+const dashboardContainerClass = "w-full";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -67,11 +70,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className={`min-h-screen ${isAdmin ? "admin-console" : ""}`}>
-      <header className="sticky top-0 z-40 px-4 pt-4 md:px-8">
-        <div className="glass flex items-center gap-4 rounded-2xl px-4 py-3 md:px-6">
-          <Link to={isAdmin ? "/admin/users" : "/"} className="flex items-center gap-2">
-            <div className="grid size-9 place-items-center rounded-xl gradient-primary">
+    <div
+      className={`min-h-screen ${isAdmin ? "admin-console" : "bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,0.18),transparent_35%),linear-gradient(180deg,#eefcff_0%,#f8fbfd_45%,#ffffff_100%)]"}`}
+    >
+      <header className="sticky top-0 z-40 px-6 pt-4 md:px-8 lg:pl-28 lg:pr-8">
+        <div
+          className={`${dashboardContainerClass} flex items-center gap-4 rounded-3xl border px-4 py-4 backdrop-blur-xl md:px-6 ${
+            isAdmin
+              ? "border-cyan-300/10 bg-[linear-gradient(90deg,rgba(8,21,40,0.98),rgba(10,27,55,0.98))] shadow-[0_0_30px_rgba(0,255,255,0.06)]"
+              : "border-white/60 bg-white/75 shadow-sm"
+          }`}
+        >
+          <Link to={isAdmin ? "/admin/dashboard" : "/"} className="flex items-center gap-2">
+            <div className={`grid size-9 place-items-center rounded-xl ${isAdmin ? "bg-cyan-400/15 shadow-[0_0_22px_rgba(34,211,238,0.22)]" : "gradient-primary"}`}>
               {isAdmin ? <ShieldCheck className="size-5 text-white" /> : <Stethoscope className="size-5 text-white" />}
             </div>
             <div className="hidden sm:block">
@@ -84,21 +95,33 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </div>
           </Link>
 
-          <div className="mx-auto hidden max-w-xl flex-1 md:flex">
+          <div className="mx-auto hidden max-w-[720px] flex-1 md:flex">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search symptoms, predictions, users..." className="pl-9" />
+              <Input
+                placeholder="Search symptoms, predictions, users..."
+                className={`h-11 rounded-2xl pl-9 shadow-sm ${
+                  isAdmin
+                    ? "border-white/10 bg-white/[0.04] text-white placeholder:text-slate-400"
+                    : "border-white/70 bg-white/75"
+                }`}
+              />
             </div>
           </div>
 
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative" onClick={() => navigate("/notifications")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`relative ${isAdmin ? "text-cyan-100 hover:bg-cyan-400/10 hover:text-white" : "text-slate-600 hover:bg-white/70 hover:text-slate-900"}`}
+              onClick={() => navigate("/notifications")}
+            >
               <Bell className="size-5" />
               <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-accent" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-xl p-1 pr-3 transition hover:bg-white/60">
+                <button className={`flex items-center gap-2 rounded-2xl p-1 pr-3 transition ${isAdmin ? "bg-white/[0.04] text-white hover:bg-white/[0.08]" : "text-slate-800 hover:bg-white/70"}`}>
                   <Avatar className="size-8">
                     <AvatarFallback className="bg-primary text-xs font-semibold text-white">{initials}</AvatarFallback>
                   </Avatar>
@@ -119,15 +142,21 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <nav aria-label="Primary" className="glass fixed left-4 top-1/2 z-30 hidden -translate-y-1/2 flex-col gap-1 rounded-2xl p-2 lg:flex">
+      <nav aria-label="Primary" className={`${isAdmin ? "admin-sidebar" : "glass"} fixed left-4 top-1/2 z-30 hidden -translate-y-1/2 flex-col gap-2 rounded-2xl p-2.5 lg:flex`}>
         {nav.map(({ to, icon: Icon, label }) => {
           const active = isActive(to);
           return (
             <Link
               key={to}
               to={to}
-              className={`group relative grid size-11 place-items-center rounded-xl transition ${
-                active ? "gradient-primary text-white shadow-glow" : "text-foreground/60 hover:bg-white/60 hover:text-foreground"
+              className={`group relative grid size-12 place-items-center rounded-xl transition duration-200 ${
+                active
+                  ? isAdmin
+                    ? "bg-gradient-to-br from-cyan-400 to-sky-400 text-white shadow-[0_0_28px_rgba(34,211,238,0.45)]"
+                    : "gradient-primary text-white shadow-glow"
+                  : isAdmin
+                    ? "text-slate-200 hover:-translate-y-0.5 hover:bg-cyan-400/12 hover:text-white"
+                    : "text-foreground/60 hover:bg-white/60 hover:text-foreground"
               }`}
             >
               <Icon className="relative z-10 size-5" />
@@ -139,7 +168,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         })}
       </nav>
 
-      <nav className="glass fixed bottom-3 left-3 right-3 z-30 flex justify-around rounded-2xl p-2 lg:hidden">
+      <nav className={`${isAdmin ? "admin-header" : "glass"} fixed bottom-3 left-3 right-3 z-30 flex justify-around rounded-2xl p-2 lg:hidden`}>
         {nav.slice(0, 5).map(({ to, icon: Icon, label }) => (
           <Link key={to} to={to} className={`flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 ${isActive(to) ? "text-primary" : "text-foreground/60"}`}>
             <Icon className="size-5" />
@@ -148,8 +177,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
 
-      <main className="mx-auto max-w-[1400px] px-4 pb-24 pt-6 md:px-8 lg:pl-24">
-        {children}
+      <main className="w-full px-6 pb-24 pt-6 md:px-8 lg:pl-28 lg:pr-8">
+        <div className={dashboardContainerClass}>
+          {children}
+        </div>
       </main>
     </div>
   );

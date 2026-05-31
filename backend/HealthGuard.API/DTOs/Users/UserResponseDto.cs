@@ -13,7 +13,6 @@ public class UserResponseDto
     public decimal? Weight { get; set; }
     public decimal? Height { get; set; }
     public string? Phone { get; set; }
-    public string? City { get; set; }
     public string? BloodType { get; set; }
     public string? ActivityLevel { get; set; }
     public string? ChronicConditions { get; set; }

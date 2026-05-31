@@ -11,19 +11,25 @@ import { predictionHistoryData, confusionMatrixData, predVsActualData, riskDistr
 import { Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ScatterChart, Scatter, LineChart, Line, Legend, PieChart, Pie, Cell } from "recharts";
+import { useAuth } from "@/contexts/AuthContext";
+import { AdminPageContainer } from "@/components/PageContainers";
 
 const COLORS = ["hsl(152, 60%, 42%)", "hsl(38, 92%, 50%)", "hsl(0, 72%, 51%)"];
 
 export default function ReportsPage() {
+  const { isAdmin } = useAuth();
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <AdminPageContainer>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-display font-bold">Reports</h1>
+            <h1 className="flex items-center gap-2 text-2xl font-display font-bold">
+              <FileText className={isAdmin ? "h-7 w-7 text-cyan-400" : "h-6 w-6 text-[#14B8C4] stroke-[2.25]"} /> Reports
+            </h1>
             <p className="text-muted-foreground text-sm">Generate, analyze, and export health reports.</p>
           </div>
-          <Button variant="outline" onClick={() => toast.success("Exported!")}>
+          <Button className="gradient-primary text-primary-foreground shadow-glow" onClick={() => toast.success("Exported!")}>
             <Download className="w-4 h-4 mr-2" /> Export All
           </Button>
         </div>
@@ -293,7 +299,7 @@ export default function ReportsPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+      </AdminPageContainer>
     </DashboardLayout>
   );
 }

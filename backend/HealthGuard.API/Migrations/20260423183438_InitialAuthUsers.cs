@@ -27,7 +27,6 @@ namespace HealthGuard.API.Migrations
                     Weight = table.Column<decimal>(type: "decimal(6,2)", nullable: true),
                     Height = table.Column<decimal>(type: "decimal(6,2)", nullable: true),
                     Phone = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    City = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     BloodType = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     ActivityLevel = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     ChronicConditions = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),

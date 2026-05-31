@@ -5,21 +5,27 @@ import { Button } from "@/components/ui/button";
 import { notificationsData } from "@/lib/mockData";
 import { Bell, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { AdminPageContainer } from "@/components/PageContainers";
 
 export default function NotificationsPage() {
+  const { isAdmin } = useAuth();
+
   const typeStyle = (type: string) =>
     type === "warning" ? "border-l-health-warning" :
     type === "success" ? "border-l-health-success" : "border-l-health-info";
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-3xl">
+      <AdminPageContainer>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-display font-bold">Notifications</h1>
+            <h1 className="flex items-center gap-2 text-2xl font-display font-bold">
+              <Bell className={isAdmin ? "h-7 w-7 text-cyan-400" : "h-6 w-6 text-[#14B8C4] stroke-[2.25]"} /> Notifications
+            </h1>
             <p className="text-muted-foreground text-sm">Stay updated on your health status.</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => toast.success("All marked as read")}>
+          <Button size="sm" className="gradient-primary text-primary-foreground shadow-glow" onClick={() => toast.success("All marked as read")}>
             <CheckCheck className="w-4 h-4 mr-1" /> Mark all read
           </Button>
         </div>
@@ -49,7 +55,7 @@ export default function NotificationsPage() {
             </Card>
           ))}
         </div>
-      </div>
+      </AdminPageContainer>
     </DashboardLayout>
   );
 }
