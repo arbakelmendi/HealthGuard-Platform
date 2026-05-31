@@ -5,16 +5,26 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { allPredictionRecords } from "@/lib/mockData";
 import { BarChart3, Search, Eye } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { predictionsApi, type AdminPredictionRecordResponse } from "@/lib/api";
 
 export default function PredictionRecordsPage() {
   const [search, setSearch] = useState("");
   const [riskFilter, setRiskFilter] = useState("all");
+  const [records, setRecords] = useState<AdminPredictionRecordResponse[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = allPredictionRecords.filter((p) => {
+  useEffect(() => {
+    setLoading(true);
+    predictionsApi.getAll()
+      .then(setRecords)
+      .catch(() => toast.error("Could not load prediction records."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = records.filter((p) => {
     const matchSearch = p.userName.toLowerCase().includes(search.toLowerCase());
     const matchRisk = riskFilter === "all" || p.riskLevel.toLowerCase() === riskFilter;
     return matchSearch && matchRisk;
@@ -39,10 +49,10 @@ export default function PredictionRecordsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[
-            { label: "Total Predictions", value: allPredictionRecords.length },
-            { label: "High Risk", value: allPredictionRecords.filter((p) => p.riskLevel === "High").length, color: "text-health-danger" },
-            { label: "Medium Risk", value: allPredictionRecords.filter((p) => p.riskLevel === "Medium").length, color: "text-health-warning" },
-            { label: "Low Risk", value: allPredictionRecords.filter((p) => p.riskLevel === "Low").length, color: "text-health-success" },
+            { label: "Total Predictions", value: records.length },
+            { label: "High Risk", value: records.filter((p) => p.riskLevel === "High").length, color: "text-health-danger" },
+            { label: "Medium Risk", value: records.filter((p) => p.riskLevel === "Medium").length, color: "text-health-warning" },
+            { label: "Low Risk", value: records.filter((p) => p.riskLevel === "Low").length, color: "text-health-success" },
           ].map((s) => (
             <Card key={s.label} className="shadow-card">
               <CardContent className="p-4">
@@ -86,16 +96,26 @@ export default function PredictionRecordsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {loading && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">Loading prediction records...</TableCell>
+                  </TableRow>
+                )}
+                {!loading && filtered.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">No prediction records found.</TableCell>
+                  </TableRow>
+                )}
                 {filtered.map((p) => (
-                  <TableRow key={p.id}>
+                  <TableRow key={p.predictionId}>
                     <TableCell className="font-medium">{p.userName}</TableCell>
-                    <TableCell className="text-sm">{p.date}</TableCell>
+                    <TableCell className="text-sm">{new Date(p.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell><Badge variant="outline" className={riskColor(p.riskLevel)}>{p.riskLevel}</Badge></TableCell>
-                    <TableCell className="font-mono">{p.score}%</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{p.model}</TableCell>
-                    <TableCell><Badge variant="secondary">{p.status}</Badge></TableCell>
+                    <TableCell className="font-mono">{p.riskScore}%</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{p.modelName}</TableCell>
+                    <TableCell><Badge variant="secondary">Completed</Badge></TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => toast.info(`Viewing details for prediction #${p.id}`)}>
+                      <Button variant="ghost" size="sm" onClick={() => toast.info(`Prediction #${p.predictionId}: ${p.explanation}`)}>
                         <Eye className="w-4 h-4" />
                       </Button>
                     </TableCell>

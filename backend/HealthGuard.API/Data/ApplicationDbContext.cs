@@ -13,6 +13,8 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<HealthRecord> HealthRecords => Set<HealthRecord>();
 
+    public DbSet<PredictionResult> PredictionResults => Set<PredictionResult>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -61,39 +63,117 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-modelBuilder.Entity<HealthRecord>(entity =>
-{
-    entity.HasKey(record => record.Id);
+        modelBuilder.Entity<HealthRecord>(entity =>
+        {
+            entity.HasKey(record => record.Id);
 
-    entity.Property(record => record.Age)
-        .IsRequired();
+            entity.Property(record => record.Age)
+                .IsRequired();
 
-    entity.Property(record => record.Weight)
-        .HasColumnType("decimal(6,2)")
-        .IsRequired();
+            entity.Property(record => record.Gender)
+                .HasMaxLength(50);
 
-    entity.Property(record => record.Height)
-        .HasColumnType("decimal(6,2)")
-        .IsRequired();
+            entity.Property(record => record.Weight)
+                .HasColumnType("decimal(6,2)")
+                .IsRequired();
 
-    entity.Property(record => record.BloodPressure)
-        .IsRequired()
-        .HasMaxLength(30);
+            entity.Property(record => record.Height)
+                .HasColumnType("decimal(6,2)")
+                .IsRequired();
 
-    entity.Property(record => record.HeartRate)
-        .IsRequired();
+            entity.Property(record => record.WeightKg)
+                .HasColumnType("decimal(6,2)")
+                .IsRequired();
 
-    entity.Property(record => record.Glucose)
-        .HasColumnType("decimal(7,2)")
-        .IsRequired();
+            entity.Property(record => record.HeightCm)
+                .HasColumnType("decimal(6,2)")
+                .IsRequired();
 
-    entity.Property(record => record.CreatedAt)
-        .IsRequired();
+            entity.Property(record => record.Bmi)
+                .HasColumnType("decimal(5,2)")
+                .IsRequired();
 
-    entity.HasOne(record => record.User)
-        .WithMany(user => user.HealthRecords)
-        .HasForeignKey(record => record.UserId)
-        .OnDelete(DeleteBehavior.Cascade);
-});
+            entity.Property(record => record.BloodPressure)
+                .IsRequired()
+                .HasMaxLength(30);
+
+            entity.Property(record => record.SystolicBp)
+                .IsRequired();
+
+            entity.Property(record => record.DiastolicBp)
+                .IsRequired();
+
+            entity.Property(record => record.HeartRate)
+                .IsRequired();
+
+            entity.Property(record => record.Glucose)
+                .HasColumnType("decimal(7,2)")
+                .IsRequired();
+
+            entity.Property(record => record.BloodSugar)
+                .HasColumnType("decimal(7,2)")
+                .IsRequired();
+
+            entity.Property(record => record.Cholesterol)
+                .HasColumnType("decimal(7,2)")
+                .IsRequired();
+
+            entity.Property(record => record.ActivityLevel)
+                .HasMaxLength(50);
+
+            entity.Property(record => record.SleepHours)
+                .HasColumnType("decimal(4,1)")
+                .IsRequired();
+
+            entity.Property(record => record.SmokingStatus)
+                .HasMaxLength(50);
+
+            entity.Property(record => record.Symptoms)
+                .HasMaxLength(1000);
+
+            entity.Property(record => record.CreatedAt)
+                .IsRequired();
+
+            entity.HasOne(record => record.User)
+                .WithMany(user => user.HealthRecords)
+                .HasForeignKey(record => record.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PredictionResult>(entity =>
+        {
+            entity.HasKey(prediction => prediction.Id);
+
+            entity.Property(prediction => prediction.RiskLevel)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.Property(prediction => prediction.RiskScore)
+                .IsRequired();
+
+            entity.Property(prediction => prediction.Explanation)
+                .IsRequired()
+                .HasMaxLength(1000);
+
+            entity.Property(prediction => prediction.ContributingFactors)
+                .IsRequired();
+
+            entity.Property(prediction => prediction.ModelName)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(prediction => prediction.CreatedAt)
+                .IsRequired();
+
+            entity.HasOne(prediction => prediction.User)
+                .WithMany(user => user.PredictionResults)
+                .HasForeignKey(prediction => prediction.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(prediction => prediction.HealthRecord)
+                .WithMany(record => record.PredictionResults)
+                .HasForeignKey(prediction => prediction.HealthRecordId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
     }
 }

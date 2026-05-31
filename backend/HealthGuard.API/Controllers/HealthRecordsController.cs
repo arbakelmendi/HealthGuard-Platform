@@ -85,6 +85,44 @@ public class HealthRecordsController : ControllerBase
         return Ok(ToResponse(latestRecord));
     }
 
+    [HttpGet("user/{userId:int}/latest")]
+    public async Task<ActionResult<HealthRecordResponseDto>> GetLatestForUser(
+        int userId,
+        CancellationToken cancellationToken)
+    {
+        EnsureCanAccessUser(userId);
+
+        var latestRecord = await _dbContext.HealthRecords
+            .AsNoTracking()
+            .Where(record => record.UserId == userId)
+            .OrderByDescending(record => record.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestRecord is null)
+        {
+            throw new ApiException(StatusCodes.Status404NotFound, "No health records found.");
+        }
+
+        return Ok(ToResponse(latestRecord));
+    }
+
+    [HttpGet("user/{userId:int}")]
+    public async Task<ActionResult<IReadOnlyList<HealthRecordResponseDto>>> GetForUser(
+        int userId,
+        CancellationToken cancellationToken)
+    {
+        EnsureCanAccessUser(userId);
+
+        var records = await _dbContext.HealthRecords
+            .AsNoTracking()
+            .Where(record => record.UserId == userId)
+            .OrderByDescending(record => record.CreatedAt)
+            .Select(record => ToResponse(record))
+            .ToListAsync(cancellationToken);
+
+        return Ok(records);
+    }
+
     [HttpGet("chart-data")]
     public async Task<ActionResult<IReadOnlyList<object>>> GetChartData(
         [FromQuery] string? metric,
@@ -175,19 +213,11 @@ public class HealthRecordsController : ControllerBase
         [FromBody] CreateHealthRecordDto request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
+        var userId = request.UserId ?? GetCurrentUserId();
+        EnsureCanAccessUser(userId);
 
-        var record = new HealthRecord
-        {
-            UserId = userId,
-            Age = request.Age,
-            Weight = request.Weight,
-            Height = request.Height,
-            BloodPressure = request.BloodPressure.Trim(),
-            HeartRate = request.HeartRate,
-            Glucose = request.Glucose,
-            CreatedAt = DateTime.UtcNow
-        };
+        var record = new HealthRecord { UserId = userId, CreatedAt = DateTime.UtcNow };
+        ApplyHealthRecordFields(record, request);
 
         _dbContext.HealthRecords.Add(record);
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -201,7 +231,8 @@ public class HealthRecordsController : ControllerBase
         [FromBody] UpdateHealthRecordDto request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
+        var userId = request.UserId ?? GetCurrentUserId();
+        EnsureCanAccessUser(userId);
 
         var record = await _dbContext.HealthRecords
             .FirstOrDefaultAsync(record => record.Id == id && record.UserId == userId, cancellationToken);
@@ -211,12 +242,7 @@ public class HealthRecordsController : ControllerBase
             throw new ApiException(StatusCodes.Status404NotFound, "Health record not found.");
         }
 
-        record.Age = request.Age;
-        record.Weight = request.Weight;
-        record.Height = request.Height;
-        record.BloodPressure = request.BloodPressure.Trim();
-        record.HeartRate = request.HeartRate;
-        record.Glucose = request.Glucose;
+        ApplyHealthRecordFields(record, request);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -256,6 +282,102 @@ public class HealthRecordsController : ControllerBase
         return parsed;
     }
 
+    private void EnsureCanAccessUser(int userId)
+    {
+        if (User.IsInRole(UserRoles.Admin))
+        {
+            return;
+        }
+
+        if (GetCurrentUserId() != userId)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "You can only access your own health records.");
+        }
+    }
+
+    private static void ApplyHealthRecordFields(HealthRecord record, CreateHealthRecordDto request)
+    {
+        var heightCm = request.HeightCm ?? request.Height;
+        var weightKg = request.WeightKg ?? request.Weight;
+        var (systolicBp, diastolicBp) = ResolveBloodPressure(request.BloodPressure, request.SystolicBp, request.DiastolicBp);
+        var bloodSugar = request.BloodSugar ?? request.Glucose;
+
+        record.Age = request.Age;
+        record.Gender = request.Gender.Trim();
+        record.Weight = weightKg;
+        record.Height = heightCm;
+        record.WeightKg = weightKg;
+        record.HeightCm = heightCm;
+        record.Bmi = CalculateBmi(heightCm, weightKg);
+        record.BloodPressure = $"{systolicBp}/{diastolicBp}";
+        record.SystolicBp = systolicBp;
+        record.DiastolicBp = diastolicBp;
+        record.HeartRate = request.HeartRate;
+        record.Glucose = bloodSugar;
+        record.BloodSugar = bloodSugar;
+        record.Cholesterol = request.Cholesterol;
+        record.ActivityLevel = request.ActivityLevel.Trim();
+        record.SleepHours = request.SleepHours;
+        record.StressLevel = request.StressLevel;
+        record.SmokingStatus = request.SmokingStatus.Trim();
+        record.Symptoms = request.Symptoms.Trim();
+    }
+
+    private static void ApplyHealthRecordFields(HealthRecord record, UpdateHealthRecordDto request)
+    {
+        ApplyHealthRecordFields(record, new CreateHealthRecordDto
+        {
+            UserId = request.UserId,
+            Age = request.Age,
+            Gender = request.Gender,
+            Weight = request.Weight,
+            Height = request.Height,
+            WeightKg = request.WeightKg,
+            HeightCm = request.HeightCm,
+            BloodPressure = request.BloodPressure,
+            SystolicBp = request.SystolicBp,
+            DiastolicBp = request.DiastolicBp,
+            HeartRate = request.HeartRate,
+            Glucose = request.Glucose,
+            BloodSugar = request.BloodSugar,
+            Cholesterol = request.Cholesterol,
+            ActivityLevel = request.ActivityLevel,
+            SleepHours = request.SleepHours,
+            StressLevel = request.StressLevel,
+            SmokingStatus = request.SmokingStatus,
+            Symptoms = request.Symptoms
+        });
+    }
+
+    private static (int Systolic, int Diastolic) ResolveBloodPressure(string bloodPressure, int? systolicBp, int? diastolicBp)
+    {
+        if (systolicBp.HasValue && diastolicBp.HasValue)
+        {
+            return (systolicBp.Value, diastolicBp.Value);
+        }
+
+        var parts = bloodPressure.Split('/', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 2 ||
+            !int.TryParse(parts[0], out var systolic) ||
+            !int.TryParse(parts[1], out var diastolic))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Blood pressure must use the format systolic/diastolic, for example 120/80.");
+        }
+
+        if (systolic is < 70 or > 250 || diastolic is < 40 or > 150)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Blood pressure values are outside the allowed range.");
+        }
+
+        return (systolic, diastolic);
+    }
+
+    private static decimal CalculateBmi(decimal heightCm, decimal weightKg)
+    {
+        var heightMeters = heightCm / 100m;
+        return Math.Round(weightKg / (heightMeters * heightMeters), 2);
+    }
+
     private static HealthRecordResponseDto ToResponse(HealthRecord record)
     {
         return new HealthRecordResponseDto
@@ -263,11 +385,24 @@ public class HealthRecordsController : ControllerBase
             Id = record.Id,
             UserId = record.UserId,
             Age = record.Age,
+            Gender = record.Gender,
             Weight = record.Weight,
             Height = record.Height,
+            WeightKg = record.WeightKg,
+            HeightCm = record.HeightCm,
+            Bmi = record.Bmi,
             BloodPressure = record.BloodPressure,
+            SystolicBp = record.SystolicBp,
+            DiastolicBp = record.DiastolicBp,
             HeartRate = record.HeartRate,
             Glucose = record.Glucose,
+            BloodSugar = record.BloodSugar,
+            Cholesterol = record.Cholesterol,
+            ActivityLevel = record.ActivityLevel,
+            SleepHours = record.SleepHours,
+            StressLevel = record.StressLevel,
+            SmokingStatus = record.SmokingStatus,
+            Symptoms = record.Symptoms,
             CreatedAt = record.CreatedAt
         };
     }

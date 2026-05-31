@@ -6,6 +6,7 @@ using HealthGuard.API.Seed;
 using HealthGuard.API.Services.Implementations;
 using HealthGuard.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -17,7 +18,24 @@ builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(entry => entry.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    entry => entry.Key,
+                    entry => entry.Value!.Errors.Select(error => error.ErrorMessage).ToArray());
+
+            return new BadRequestObjectResult(new
+            {
+                message = "Validation failed.",
+                errors
+            });
+        };
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
@@ -64,6 +82,12 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<HealthRiskPredictionService>();
+builder.Services.AddHttpClient<MachineLearningPredictionService>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:8000");
+    client.Timeout = TimeSpan.FromSeconds(5);
+});
 builder.Services.AddScoped<AdminSeeder>();
 
 builder.Services.AddCors(options =>
@@ -71,7 +95,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("HealthGuardFrontend", policy =>
     {
         policy
-            .WithOrigins("http://localhost:5173", "https://localhost:5173")
+            .WithOrigins("http://localhost:5173", "https://localhost:5173", "http://localhost:8080")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
