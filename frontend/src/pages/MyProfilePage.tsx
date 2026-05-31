@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Activity, Calendar, Edit, Phone, Save, Shield, TrendingUp, User, UserCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Activity, Calendar, Edit, Loader2, Phone, Save, Shield, TrendingUp, User, UserCircle } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import type { UpdateProfileRequest } from "@/types/auth";
 import { UserPageContainer } from "@/components/PageContainers";
+import { predictionsApi, type PredictHealthRiskResponse } from "@/lib/api";
 
 const chronicConditionOptions = [
   "Diabetes (Type 1)", "Diabetes (Type 2)", "Prediabetes", "Hypertension (High Blood Pressure)",
@@ -46,8 +47,11 @@ const toggleMultiValue = (current: string | undefined, option: string) => {
 };
 
 export default function MyProfilePage() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, refreshUser } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [predictions, setPredictions] = useState<PredictHealthRiskResponse[]>([]);
   const [form, setForm] = useState<UpdateProfileRequest>({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
@@ -62,6 +66,20 @@ export default function MyProfilePage() {
     allergies: user?.allergies || "",
     smokingStatus: user?.smokingStatus || "",
   });
+
+  useEffect(() => {
+    refreshUser()
+      .catch(() => toast.error("Could not load your profile."))
+      .finally(() => setLoadingProfile(false));
+  }, [refreshUser]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    predictionsApi.getByUser(Number(user.id))
+      .then(setPredictions)
+      .catch(() => setPredictions([]));
+  }, [user?.id]);
 
   useEffect(() => {
     setForm({
@@ -80,7 +98,35 @@ export default function MyProfilePage() {
     });
   }, [user]);
 
-  if (!user) return null;
+  const latestPrediction = useMemo(
+    () => [...predictions].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0] ?? null,
+    [predictions],
+  );
+
+  if (loadingProfile) {
+    return (
+      <DashboardLayout>
+        <UserPageContainer>
+          <div className="rounded-3xl border bg-white/60 p-8 text-center text-sm text-muted-foreground">
+            <Loader2 className="mx-auto mb-3 size-6 animate-spin text-primary" />
+            Loading profile...
+          </div>
+        </UserPageContainer>
+      </DashboardLayout>
+    );
+  }
+
+  if (!user) {
+    return (
+      <DashboardLayout>
+        <UserPageContainer>
+          <div className="rounded-3xl border border-health-danger/20 bg-health-danger/10 p-8 text-center text-sm text-health-danger">
+            Could not load your profile. Please sign in again.
+          </div>
+        </UserPageContainer>
+      </DashboardLayout>
+    );
+  }
 
   const bmi = form.weight && form.height ? (form.weight / (form.height / 100) ** 2).toFixed(1) : "-";
 
@@ -97,20 +143,23 @@ export default function MyProfilePage() {
       toast.error("Age must be between 1 and 120.");
       return;
     }
-    if (form.weight && form.weight <= 0) {
-      toast.error("Weight must be positive.");
+    if (form.weight && (form.weight < 20 || form.weight > 300)) {
+      toast.error("Weight must be between 20 and 300 kg.");
       return;
     }
-    if (form.height && form.height <= 0) {
-      toast.error("Height must be positive.");
+    if (form.height && (form.height < 80 || form.height > 250)) {
+      toast.error("Height must be between 80 and 250 cm.");
       return;
     }
+    setSaving(true);
     try {
       await updateProfile(form);
       setEditing(false);
       toast.success("Profile updated.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Unable to update profile.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -147,6 +196,7 @@ export default function MyProfilePage() {
               </div>
               <Button
                 variant={editing ? "default" : "outline"}
+                disabled={saving}
                 onClick={() => {
                   if (editing) {
                     void handleSave();
@@ -155,7 +205,11 @@ export default function MyProfilePage() {
                   setEditing(true);
                 }}
               >
-                {editing ? <><Save className="w-4 h-4 mr-1" /> Save</> : <><Edit className="w-4 h-4 mr-1" /> Edit Profile</>}
+                {editing
+                  ? saving
+                    ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Saving</>
+                    : <><Save className="w-4 h-4 mr-1" /> Save</>
+                  : <><Edit className="w-4 h-4 mr-1" /> Edit Profile</>}
               </Button>
             </div>
           </CardContent>
@@ -164,7 +218,7 @@ export default function MyProfilePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { label: "BMI", value: bmi, icon: Activity, color: "text-primary" },
-            { label: "Risk Score", value: "52%", icon: TrendingUp, color: "text-health-warning" },
+            { label: "Risk Score", value: latestPrediction ? `${latestPrediction.riskScore}%` : "-", icon: TrendingUp, color: "text-health-warning" },
             { label: "Member Since", value: user.joinedDate, icon: Calendar, color: "text-health-info" },
           ].map((s) => (
             <Card key={s.label} className="shadow-card">

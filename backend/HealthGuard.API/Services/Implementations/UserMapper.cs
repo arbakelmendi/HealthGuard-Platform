@@ -15,6 +15,8 @@ internal static class UserMapper
             FullName = user.FullName,
             Email = user.Email,
             Role = user.Role,
+            Status = user.IsActive ? "active" : "inactive",
+            MemberSince = user.CreatedAt,
             Age = user.Age,
             Gender = user.Gender,
             Weight = user.Weight,

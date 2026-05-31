@@ -32,12 +32,12 @@ export const authApi = {
   },
 
   async getProfile() {
-    const response = await api.get<AuthResponse["user"]>("/profile");
+    const response = await api.get<AuthResponse["user"]>("/users/me");
     return response.data;
   },
 
   async updateProfile(request: UpdateProfileRequest) {
-    const response = await api.put<AuthResponse["user"]>("/profile", {
+    const response = await api.put<AuthResponse["user"]>("/users/me", {
       ...request,
       firstName: request.firstName?.trim(),
       lastName: request.lastName?.trim(),

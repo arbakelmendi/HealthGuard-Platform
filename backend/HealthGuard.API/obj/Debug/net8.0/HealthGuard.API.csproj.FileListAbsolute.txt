@@ -298,7 +298,6 @@ C:\Users\arbak\Projects\HealthGuard_Platform\healthguard-platform\backend\Health
 C:\Users\oltsh\Desktop\healthguard-platform\backend\HealthGuard.API\bin\Debug\net8.0\appsettings.Development.json
 C:\Users\oltsh\Desktop\healthguard-platform\backend\HealthGuard.API\bin\Debug\net8.0\appsettings.json
 C:\Users\oltsh\Desktop\healthguard-platform\backend\HealthGuard.API\bin\Debug\net8.0\HealthGuard.API.staticwebassets.endpoints.json
-C:\Users\oltsh\Desktop\healthguard-platform\backend\HealthGuard.API\bin\Debug\net8.0\HealthGuard.API.exe
 C:\Users\oltsh\Desktop\healthguard-platform\backend\HealthGuard.API\bin\Debug\net8.0\HealthGuard.API.deps.json
 C:\Users\oltsh\Desktop\healthguard-platform\backend\HealthGuard.API\bin\Debug\net8.0\HealthGuard.API.runtimeconfig.json
 C:\Users\oltsh\Desktop\healthguard-platform\backend\HealthGuard.API\bin\Debug\net8.0\HealthGuard.API.dll
@@ -452,3 +451,4 @@ C:\Users\oltsh\Desktop\healthguard-platform\.buildverify\healthguard-api\HealthG
 C:\Users\oltsh\Desktop\healthguard-platform\.buildverify\healthguard-api\HealthGuard.API.runtimeconfig.json
 C:\Users\oltsh\Desktop\healthguard-platform\.buildverify\healthguard-api\HealthGuard.API.dll
 C:\Users\oltsh\Desktop\healthguard-platform\.buildverify\healthguard-api\HealthGuard.API.pdb
+C:\Users\oltsh\Desktop\healthguard-platform\backend\HealthGuard.API\bin\Debug\net8.0\HealthGuard.API.exe

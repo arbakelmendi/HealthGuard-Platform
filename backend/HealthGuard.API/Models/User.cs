@@ -65,4 +65,8 @@ public class User
     public ICollection<PredictionResult> PredictionResults { get; set; } = new List<PredictionResult>();
 
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+
+    public ICollection<SymptomLog> SymptomLogs { get; set; } = new List<SymptomLog>();
+
+    public UserSettings? Settings { get; set; }
 }

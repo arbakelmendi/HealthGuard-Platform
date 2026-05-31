@@ -22,10 +22,10 @@ public class UpdateProfileDto
     [StringLength(50)]
     public string? Gender { get; set; }
 
-    [Range(1, 999)]
+    [Range(20, 300)]
     public decimal? Weight { get; set; }
 
-    [Range(1, 300)]
+    [Range(80, 250)]
     public decimal? Height { get; set; }
 
     [StringLength(30)]

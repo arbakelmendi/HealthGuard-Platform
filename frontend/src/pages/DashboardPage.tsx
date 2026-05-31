@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
   AlertTriangle,
   Bell,
   Brain,
+  CheckCircle2,
   Droplet,
   Heart,
   LayoutDashboard,
@@ -22,6 +24,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { aiInsights, healthTrendsData, notificationsData, predictionHistoryData } from "@/lib/mockData";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserPageContainer } from "@/components/PageContainers";
+import { predictionsApi, type PredictHealthRiskResponse } from "@/lib/api";
+import { getTopRecommendations } from "@/lib/recommendations";
 
 const pillars = [
   { label: "Cardio", value: 88, icon: Heart },
@@ -40,6 +44,25 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const displayName = user?.firstName || "there";
   const healthScore = 82;
+  const [predictions, setPredictions] = useState<PredictHealthRiskResponse[]>([]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    predictionsApi.getByUser(Number(user.id))
+      .then(setPredictions)
+      .catch(() => setPredictions([]));
+  }, [user?.id]);
+
+  const latestPrediction = useMemo(
+    () => [...predictions].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0] ?? null,
+    [predictions],
+  );
+
+  const topRecommendations = useMemo(
+    () => getTopRecommendations(latestPrediction, user, 3),
+    [latestPrediction, user],
+  );
 
   return (
     <DashboardLayout>
@@ -211,6 +234,40 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-3xl">
+            <CardContent className="p-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold">Top Recommendations</h3>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Based on your latest prediction.</p>
+                </div>
+                <Button asChild variant="outline" size="sm" className="shrink-0">
+                  <Link to="/recommendations">View All</Link>
+                </Button>
+              </div>
+              {topRecommendations.length === 0 ? (
+                <div className="rounded-2xl border border-dashed bg-white/45 p-5 text-sm text-muted-foreground">
+                  Generate a health prediction to unlock personalized recommendations.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {topRecommendations.map((recommendation) => (
+                    <Link key={recommendation.id} to="/recommendations" className="flex gap-3 rounded-2xl p-3 transition hover:bg-white/70">
+                      <div className="grid size-10 shrink-0 place-items-center rounded-xl gradient-soft text-primary">
+                        <CheckCircle2 className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium">{recommendation.title}</div>
+                        <div className="line-clamp-1 text-xs text-muted-foreground">{recommendation.description}</div>
+                      </div>
+                      <Badge variant="outline" className="shrink-0 rounded-full">{recommendation.priority}</Badge>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 

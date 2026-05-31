@@ -17,6 +17,10 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Notification> Notifications => Set<Notification>();
 
+    public DbSet<UserSettings> UserSettings => Set<UserSettings>();
+
+    public DbSet<SymptomLog> SymptomLogs => Set<SymptomLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -67,6 +71,58 @@ public class ApplicationDbContext : DbContext
                 .WithOne(notification => notification.User)
                 .HasForeignKey(notification => notification.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(user => user.Settings)
+                .WithOne(settings => settings.User)
+                .HasForeignKey<UserSettings>(settings => settings.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(user => user.SymptomLogs)
+                .WithOne(symptom => symptom.User)
+                .HasForeignKey(symptom => symptom.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserSettings>(entity =>
+        {
+            entity.HasKey(settings => settings.Id);
+
+            entity.HasIndex(settings => settings.UserId)
+                .IsUnique();
+
+            entity.Property(settings => settings.CreatedAt)
+                .IsRequired();
+
+            entity.Property(settings => settings.UpdatedAt)
+                .IsRequired();
+        });
+
+        modelBuilder.Entity<SymptomLog>(entity =>
+        {
+            entity.HasKey(symptom => symptom.Id);
+
+            entity.Property(symptom => symptom.Symptom)
+                .IsRequired()
+                .HasMaxLength(120);
+
+            entity.Property(symptom => symptom.Severity)
+                .IsRequired()
+                .HasMaxLength(30);
+
+            entity.Property(symptom => symptom.Duration)
+                .IsRequired()
+                .HasMaxLength(80);
+
+            entity.Property(symptom => symptom.Notes)
+                .HasMaxLength(1000);
+
+            entity.Property(symptom => symptom.CreatedAt)
+                .IsRequired();
+
+            entity.Property(symptom => symptom.UpdatedAt)
+                .IsRequired();
+
+            entity.HasIndex(symptom => new { symptom.UserId, symptom.CreatedAt });
         });
 
         modelBuilder.Entity<HealthRecord>(entity =>
