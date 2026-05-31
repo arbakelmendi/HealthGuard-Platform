@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Brain, AlertTriangle, CheckCircle, Zap } from "lucide-react";
 import { healthRecordsApi, predictionsApi, type HealthRecordResponse } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/contexts/NotificationsContext";
 import { toast } from "sonner";
 import { UserPageContainer } from "@/components/PageContainers";
 
@@ -33,6 +34,7 @@ const parseBloodPressure = (bloodPressure: string) => {
 
 export default function RiskAssessmentPage() {
   const { user } = useAuth();
+  const { refreshUnreadCount } = useNotifications();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<RiskResult | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
@@ -127,6 +129,7 @@ export default function RiskAssessmentPage() {
         explanation: prediction.explanation,
         factors: prediction.contributingFactors,
       });
+      await refreshUnreadCount();
     } catch (error) {
       const response = (error as { response?: { data?: { errors?: ValidationErrors; message?: string } } }).response?.data;
       if (response?.errors) {

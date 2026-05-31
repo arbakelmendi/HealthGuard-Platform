@@ -15,6 +15,8 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<PredictionResult> PredictionResults => Set<PredictionResult>();
 
+    public DbSet<Notification> Notifications => Set<Notification>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -59,6 +61,11 @@ public class ApplicationDbContext : DbContext
             entity.HasMany(user => user.HealthRecords)
                 .WithOne(record => record.User)
                 .HasForeignKey(record => record.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(user => user.Notifications)
+                .WithOne(notification => notification.User)
+                .HasForeignKey(notification => notification.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -173,6 +180,49 @@ public class ApplicationDbContext : DbContext
                 .WithMany(record => record.PredictionResults)
                 .HasForeignKey(prediction => prediction.HealthRecordId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(notification => notification.Id);
+
+            entity.Property(notification => notification.Title)
+                .IsRequired()
+                .HasMaxLength(150);
+
+            entity.Property(notification => notification.Message)
+                .IsRequired()
+                .HasMaxLength(1000);
+
+            entity.Property(notification => notification.Type)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.Property(notification => notification.Source)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.Property(notification => notification.CreatedAt)
+                .IsRequired();
+
+            entity.HasOne(notification => notification.User)
+                .WithMany(user => user.Notifications)
+                .HasForeignKey(notification => notification.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(notification => notification.PredictionResult)
+                .WithMany(prediction => prediction.Notifications)
+                .HasForeignKey(notification => notification.PredictionResultId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(notification => new
+                {
+                    notification.UserId,
+                    notification.PredictionResultId,
+                    notification.Type
+                })
+                .IsUnique()
+                .HasFilter("[PredictionResultId] IS NOT NULL");
         });
     }
 }

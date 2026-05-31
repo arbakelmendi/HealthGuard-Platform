@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 import LoginPage from "./pages/LoginPage";
@@ -59,42 +60,44 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            {/* Public auth routes */}
-            <Route path="/login" element={<AuthPage><LoginPage /></AuthPage>} />
-            <Route path="/signup" element={<AuthPage><SignupPage /></AuthPage>} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/" element={<HomeRoute />} />
+          <NotificationsProvider>
+            <Routes>
+              {/* Public auth routes */}
+              <Route path="/login" element={<AuthPage><LoginPage /></AuthPage>} />
+              <Route path="/signup" element={<AuthPage><SignupPage /></AuthPage>} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/" element={<HomeRoute />} />
 
-            {/* Protected user routes */}
-            <Route path="/my-profile" element={<ProtectedRoute><MyProfilePage /></ProtectedRoute>} />
-            <Route path="/health-profile" element={<ProtectedRoute><HealthProfilePage /></ProtectedRoute>} />
-            <Route path="/symptoms" element={<ProtectedRoute><SymptomsPage /></ProtectedRoute>} />
-            <Route path="/risk-assessment" element={<ProtectedRoute><RiskAssessmentPage /></ProtectedRoute>} />
-            <Route path="/predictions" element={<ProtectedRoute><PredictionsPage /></ProtectedRoute>} />
-            <Route path="/recommendations" element={<ProtectedRoute><RecommendationsPage /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
-            <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              {/* Protected user routes */}
+              <Route path="/my-profile" element={<ProtectedRoute><MyProfilePage /></ProtectedRoute>} />
+              <Route path="/health-profile" element={<ProtectedRoute><HealthProfilePage /></ProtectedRoute>} />
+              <Route path="/symptoms" element={<ProtectedRoute><SymptomsPage /></ProtectedRoute>} />
+              <Route path="/risk-assessment" element={<ProtectedRoute><RiskAssessmentPage /></ProtectedRoute>} />
+              <Route path="/predictions" element={<ProtectedRoute><PredictionsPage /></ProtectedRoute>} />
+              <Route path="/recommendations" element={<ProtectedRoute><RecommendationsPage /></ProtectedRoute>} />
+              <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+              <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
-            {/* Admin routes */}
-            <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="admin"><AdminDashboardPage /></ProtectedRoute>} />
-            <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UsersManagementPage /></ProtectedRoute>} />
-            <Route path="/admin/predictions" element={<ProtectedRoute requiredRole="admin"><PredictionRecordsPage /></ProtectedRoute>} />
-            <Route path="/admin/datasets" element={<ProtectedRoute requiredRole="admin"><DatasetsPage /></ProtectedRoute>} />
-            <Route path="/admin/model-summary" element={<ProtectedRoute requiredRole="admin"><ModelSummaryPage /></ProtectedRoute>} />
+              {/* Admin routes */}
+              <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="admin"><AdminDashboardPage /></ProtectedRoute>} />
+              <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UsersManagementPage /></ProtectedRoute>} />
+              <Route path="/admin/predictions" element={<ProtectedRoute requiredRole="admin"><PredictionRecordsPage /></ProtectedRoute>} />
+              <Route path="/admin/datasets" element={<ProtectedRoute requiredRole="admin"><DatasetsPage /></ProtectedRoute>} />
+              <Route path="/admin/model-summary" element={<ProtectedRoute requiredRole="admin"><ModelSummaryPage /></ProtectedRoute>} />
 
-            {/* ML routes (admin only) */}
-            <Route path="/ml/models" element={<ProtectedRoute requiredRole="admin"><MLModelsPage /></ProtectedRoute>} />
-            <Route path="/ml/features" element={<ProtectedRoute requiredRole="admin"><FeatureAnalysisPage /></ProtectedRoute>} />
-            <Route path="/ml/tuning" element={<ProtectedRoute requiredRole="admin"><ModelTuningPage /></ProtectedRoute>} />
+              {/* ML routes (admin only) */}
+              <Route path="/ml/models" element={<ProtectedRoute requiredRole="admin"><MLModelsPage /></ProtectedRoute>} />
+              <Route path="/ml/features" element={<ProtectedRoute requiredRole="admin"><FeatureAnalysisPage /></ProtectedRoute>} />
+              <Route path="/ml/tuning" element={<ProtectedRoute requiredRole="admin"><ModelTuningPage /></ProtectedRoute>} />
 
-            {/* Legacy admin route redirect */}
-            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+              {/* Legacy admin route redirect */}
+              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </NotificationsProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

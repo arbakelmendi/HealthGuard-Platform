@@ -33,4 +33,6 @@ public class PredictionResult
     public User User { get; set; } = null!;
 
     public HealthRecord? HealthRecord { get; set; }
+
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

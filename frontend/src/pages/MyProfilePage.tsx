@@ -6,14 +6,44 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import type { UpdateProfileRequest } from "@/types/auth";
 import { UserPageContainer } from "@/components/PageContainers";
+
+const chronicConditionOptions = [
+  "Diabetes (Type 1)", "Diabetes (Type 2)", "Prediabetes", "Hypertension (High Blood Pressure)",
+  "Heart Disease", "Coronary Artery Disease", "Heart Failure", "Arrhythmia", "Asthma",
+  "Chronic Obstructive Pulmonary Disease (COPD)", "Chronic Kidney Disease", "Liver Disease",
+  "Stroke History", "High Cholesterol (Hyperlipidemia)", "Arthritis", "Osteoporosis",
+  "Thyroid Disorder", "Cancer", "Depression", "Anxiety Disorder", "Epilepsy / Seizure Disorder",
+  "Autoimmune Disease", "Sleep Apnea", "Obesity", "None", "Other",
+];
+
+const allergyOptions = [
+  "Pollen", "Dust", "Mold", "Pet Dander", "Insect Stings", "Peanuts", "Tree Nuts",
+  "Milk / Dairy", "Eggs", "Soy", "Wheat / Gluten", "Fish", "Shellfish", "Sesame",
+  "Penicillin", "Antibiotics (Other)", "Aspirin", "Ibuprofen / NSAIDs", "Latex",
+  "Contrast Dye", "Fragrances / Perfumes", "None", "Other",
+];
+
+const parseMulti = (value?: string) => value ? value.split(",").map((item) => item.trim()).filter(Boolean) : [];
+
+const toggleMultiValue = (current: string | undefined, option: string) => {
+  const selected = parseMulti(current);
+  if (option === "None") return selected.includes("None") ? "" : "None";
+
+  const withoutNone = selected.filter((item) => item !== "None");
+  const next = withoutNone.includes(option)
+    ? withoutNone.filter((item) => item !== option)
+    : [...withoutNone, option];
+
+  return next.join(", ");
+};
 
 export default function MyProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -233,14 +263,20 @@ export default function MyProfilePage() {
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Chronic Conditions</Label>
-                <Textarea value={form.chronicConditions || ""} disabled={!editing} onChange={(e) => setField("chronicConditions", e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Allergies</Label>
-                <Textarea value={form.allergies || ""} disabled={!editing} onChange={(e) => setField("allergies", e.target.value)} />
-              </div>
+              <MultiSelectPanel
+                title="Chronic Conditions"
+                options={chronicConditionOptions}
+                value={form.chronicConditions}
+                disabled={!editing}
+                onChange={(option) => setField("chronicConditions", toggleMultiValue(form.chronicConditions, option))}
+              />
+              <MultiSelectPanel
+                title="Allergies"
+                options={allergyOptions}
+                value={form.allergies}
+                disabled={!editing}
+                onChange={(option) => setField("allergies", toggleMultiValue(form.allergies, option))}
+              />
             </div>
             <Separator />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -257,5 +293,50 @@ export default function MyProfilePage() {
         </Card>
       </UserPageContainer>
     </DashboardLayout>
+  );
+}
+
+function MultiSelectPanel({
+  title,
+  options,
+  value,
+  disabled,
+  onChange,
+}: {
+  title: string;
+  options: string[];
+  value?: string;
+  disabled: boolean;
+  onChange: (option: string) => void;
+}) {
+  const selected = parseMulti(value);
+
+  return (
+    <div className="rounded-2xl border bg-white/65 p-3.5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <Label className="text-sm font-semibold text-foreground">{title}</Label>
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{selected.length} selected</span>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {options.map((option) => {
+          const checked = selected.includes(option);
+          return (
+            <label
+              key={option}
+              className={`flex min-h-9 items-center gap-2 rounded-xl border px-2.5 py-1.5 text-[11px] leading-snug transition ${
+                disabled ? "cursor-default" : "cursor-pointer hover:-translate-y-0.5"
+              } ${
+                checked
+                  ? "border-cyan-400 bg-cyan-50 text-cyan-800 shadow-[0_0_0_1px_rgba(34,211,238,0.22)]"
+                  : "border-border/70 bg-white/55 text-foreground hover:bg-white"
+              }`}
+            >
+              <Checkbox checked={checked} disabled={disabled} onCheckedChange={() => onChange(option)} />
+              <span>{option}</span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
   );
 }

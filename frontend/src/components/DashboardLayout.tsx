@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/contexts/NotificationsContext";
 
 const userNav = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -59,6 +60,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAdmin, logout } = useAuth();
+  const { hasUnread } = useNotifications();
   const nav = isAdmin ? adminNav : userNav;
   const initials = user ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() : "HG";
 
@@ -116,8 +118,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               className={`relative ${isAdmin ? "text-cyan-100 hover:bg-cyan-400/10 hover:text-white" : "text-slate-600 hover:bg-white/70 hover:text-slate-900"}`}
               onClick={() => navigate("/notifications")}
             >
-              <Bell className="size-5" />
-              <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-accent" />
+              <Bell className={`size-5 ${hasUnread ? "text-accent" : ""}`} />
+              {hasUnread && <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-accent" />}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

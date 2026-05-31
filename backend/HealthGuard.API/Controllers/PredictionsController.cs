@@ -107,6 +107,8 @@ public class PredictionsController : ControllerBase
         _dbContext.PredictionResults.Add(result);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
+        await CreatePredictionNotificationAsync(result, cancellationToken);
+
         return Ok(ToResponse(result));
     }
 
@@ -338,5 +340,51 @@ public class PredictionsController : ControllerBase
         {
             return factors.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         }
+    }
+
+    private async Task CreatePredictionNotificationAsync(
+        PredictionResult prediction,
+        CancellationToken cancellationToken)
+    {
+        string? type = null;
+        if (prediction.RiskLevel.Equals("High", StringComparison.OrdinalIgnoreCase) || prediction.RiskScore >= 70)
+        {
+            type = NotificationTypes.Alert;
+        }
+        else if (prediction.RiskLevel.Equals("Medium", StringComparison.OrdinalIgnoreCase)
+            || prediction.RiskScore is >= 40 and <= 69)
+        {
+            type = NotificationTypes.Info;
+        }
+
+        if (type is null)
+        {
+            return;
+        }
+
+        var exists = await _dbContext.Notifications.AnyAsync(
+            notification => notification.PredictionResultId == prediction.Id
+                && notification.UserId == prediction.UserId
+                && notification.Type == type,
+            cancellationToken);
+
+        if (exists)
+        {
+            return;
+        }
+
+        var notification = new Notification
+        {
+            UserId = prediction.UserId,
+            Title = type == NotificationTypes.Alert ? "Health Risk Alert" : "Health Risk Update",
+            Message = $"Your latest health prediction shows {prediction.RiskLevel} risk with a score of {prediction.RiskScore}. Please review your health recommendations.",
+            Type = type,
+            Source = NotificationSources.Prediction,
+            PredictionResultId = prediction.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _dbContext.Notifications.Add(notification);
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }

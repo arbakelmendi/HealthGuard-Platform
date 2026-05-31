@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/contexts/NotificationsContext";
 import { useNavigate } from "react-router-dom";
 
 export function TopNavbar() {
   const { user, logout, isAdmin } = useAuth();
+  const { unreadCount, hasUnread } = useNotifications();
   const navigate = useNavigate();
 
   const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : "??";
@@ -23,8 +25,12 @@ export function TopNavbar() {
       </div>
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground" onClick={() => navigate("/notifications")}>
-          <Bell className="w-4 h-4" />
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-health-danger text-[10px] font-bold flex items-center justify-center text-primary-foreground">3</span>
+          <Bell className={`w-4 h-4 ${hasUnread ? "text-accent" : ""}`} />
+          {hasUnread && (
+            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-health-danger text-[10px] font-bold flex items-center justify-center text-primary-foreground">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
         </Button>
         <div className="flex items-center gap-2 pl-2 border-l border-border cursor-pointer" onClick={() => navigate("/my-profile")}>
           <Avatar className="w-8 h-8">

@@ -63,4 +63,6 @@ public class User
     public ICollection<HealthRecord> HealthRecords { get; set; } = new List<HealthRecord>();
 
     public ICollection<PredictionResult> PredictionResults { get; set; } = new List<PredictionResult>();
+
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }
