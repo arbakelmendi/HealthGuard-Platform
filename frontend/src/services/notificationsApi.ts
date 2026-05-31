@@ -1,7 +1,7 @@
 import api from "@/lib/api";
 
 export type NotificationType = "Alert" | "Reminder" | "Info";
-export type NotificationSource = "Prediction" | "System" | "Profile";
+export type NotificationSource = "Prediction" | "System" | "Profile" | "HealthRecord";
 
 export interface NotificationResponse {
   id: number;
@@ -34,6 +34,11 @@ export const notificationsApi = {
 
   async markAllRead(userId: number) {
     const response = await api.put<{ message: string }>(`/notifications/user/${userId}/read-all`);
+    return response.data;
+  },
+
+  async generateHealthReminders() {
+    const response = await api.post<{ message: string; createdCount: number }>("/notifications/generate-health-reminders");
     return response.data;
   },
 };

@@ -133,7 +133,7 @@ public class NotificationsController : ControllerBase
                 .AnyAsync(
                     notification => notification.UserId == request.UserId
                         && notification.PredictionResultId == request.PredictionResultId.Value
-                        && notification.Type == NormalizeNotificationType(request.Type),
+                        && notification.Title == request.Title.Trim(),
                     cancellationToken);
 
             if (duplicateExists)
@@ -157,6 +157,80 @@ public class NotificationsController : ControllerBase
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return CreatedAtAction(nameof(GetByUser), new { userId = notification.UserId }, ToResponse(notification));
+    }
+
+    [HttpPost("generate-health-reminders")]
+    [Authorize(Roles = UserRoles.Admin)]
+    public async Task<ActionResult<object>> GenerateHealthRecordReminders(CancellationToken cancellationToken)
+    {
+        var reminderCutoff = DateTime.UtcNow.AddDays(-7);
+        var users = await _dbContext.Users
+            .AsNoTracking()
+            .Where(user => user.IsActive)
+            .Select(user => new
+            {
+                user.Id,
+                LatestHealthRecordAt = _dbContext.HealthRecords
+                    .Where(record => record.UserId == user.Id)
+                    .Max(record => (DateTime?)record.CreatedAt)
+            })
+            .ToListAsync(cancellationToken);
+
+        var now = DateTime.UtcNow;
+        var createdCount = 0;
+
+        foreach (var user in users)
+        {
+            if (user.LatestHealthRecordAt.HasValue && user.LatestHealthRecordAt.Value >= reminderCutoff)
+            {
+                continue;
+            }
+
+            var hasUnreadReminder = await _dbContext.Notifications.AnyAsync(
+                notification => notification.UserId == user.Id
+                    && notification.Source == NotificationSources.HealthRecord
+                    && notification.Type == NotificationTypes.Reminder
+                    && notification.Title == "Reminder"
+                    && !notification.IsRead,
+                cancellationToken);
+
+            if (hasUnreadReminder)
+            {
+                continue;
+            }
+
+            var hasRecentReminder = await _dbContext.Notifications.AnyAsync(
+                notification => notification.UserId == user.Id
+                    && notification.Source == NotificationSources.HealthRecord
+                    && notification.Type == NotificationTypes.Reminder
+                    && notification.Title == "Reminder"
+                    && notification.CreatedAt >= reminderCutoff,
+                cancellationToken);
+
+            if (hasRecentReminder)
+            {
+                continue;
+            }
+
+            _dbContext.Notifications.Add(new Notification
+            {
+                UserId = user.Id,
+                Title = "Reminder",
+                Message = "You haven't updated your health records recently. Add new health information for more accurate predictions.",
+                Type = NotificationTypes.Reminder,
+                Source = NotificationSources.HealthRecord,
+                CreatedAt = now
+            });
+            createdCount++;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Ok(new
+        {
+            message = $"{createdCount} health record reminder notification(s) created.",
+            createdCount
+        });
     }
 
     private void EnsureCanAccessUser(int userId)
@@ -202,7 +276,7 @@ public class NotificationsController : ControllerBase
     {
         if (!NotificationSources.All.Contains(source))
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Notification source must be Prediction, System, or Profile.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Notification source must be Prediction, System, Profile, or HealthRecord.");
         }
     }
 
@@ -231,6 +305,11 @@ public class NotificationsController : ControllerBase
         if (source.Equals(NotificationSources.Profile, StringComparison.OrdinalIgnoreCase))
         {
             return NotificationSources.Profile;
+        }
+
+        if (source.Equals(NotificationSources.HealthRecord, StringComparison.OrdinalIgnoreCase))
+        {
+            return NotificationSources.HealthRecord;
         }
 
         return NotificationSources.System;

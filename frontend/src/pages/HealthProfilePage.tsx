@@ -9,10 +9,12 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { healthRecordsApi, type HealthRecordPayload, type HealthRecordResponse } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/contexts/NotificationsContext";
 import { UserPageContainer } from "@/components/PageContainers";
 
 export default function HealthProfilePage() {
   const { user } = useAuth();
+  const { refreshUnreadCount } = useNotifications();
   const [age, setAge] = useState("32");
   const [gender, setGender] = useState("female");
   const [weight, setWeight] = useState("78");
@@ -115,6 +117,7 @@ export default function HealthProfilePage() {
         : await healthRecordsApi.saveHealthRecord(payload);
 
       setLatestRecord(saved);
+      await refreshUnreadCount();
       toast.success("Health profile updated successfully!");
     } catch (error) {
       const response = (error as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }).response?.data;
