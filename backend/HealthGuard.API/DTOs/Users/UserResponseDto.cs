@@ -8,6 +8,8 @@ public class UserResponseDto
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime MemberSince { get; set; }
     public int? Age { get; set; }
     public string? Gender { get; set; }
     public decimal? Weight { get; set; }

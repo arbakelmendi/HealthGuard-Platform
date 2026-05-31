@@ -142,10 +142,14 @@ public class HealthRiskPredictionService
         }
 
         var symptoms = symptomsText.ToLowerInvariant();
-        if (symptoms.Contains("chest pain") || symptoms.Contains("shortness of breath"))
+        if (symptoms.Contains("chest pain")
+            || symptoms.Contains("shortness of breath")
+            || symptoms.Contains("palpitations")
+            || symptoms.Contains("severe dizziness")
+            || symptoms.Contains("weakness"))
         {
             score += 20;
-            factors.Add("Serious reported symptoms");
+            factors.Add("High-risk recent symptoms");
         }
         else if (symptoms.Contains("fatigue") || symptoms.Contains("headache"))
         {
@@ -173,7 +177,11 @@ public class HealthRiskPredictionService
             return $"The rule-based model assigned a {riskLevel.ToLowerInvariant()} risk score of {score} because no major risk contributors were detected in the submitted data.";
         }
 
-        return $"The rule-based model assigned a {riskLevel.ToLowerInvariant()} risk score of {score} based on {string.Join(", ", factors.Take(4))}.";
+        var symptomText = factors.Contains("High-risk recent symptoms")
+            ? " Recent symptoms such as chest pain, shortness of breath, palpitations, dizziness, or weakness may have contributed to a higher risk score."
+            : string.Empty;
+
+        return $"The rule-based model assigned a {riskLevel.ToLowerInvariant()} risk score of {score} based on {string.Join(", ", factors.Take(4))}.{symptomText}";
     }
 }
 

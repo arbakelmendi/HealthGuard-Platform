@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, AlertTriangle, CheckCircle, Zap } from "lucide-react";
+import { Brain, AlertTriangle, CheckCircle, Stethoscope, Zap } from "lucide-react";
 import { healthRecordsApi, predictionsApi, type HealthRecordResponse } from "@/lib/api";
+import { symptomsApi, type SymptomLog } from "@/services/symptomsApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/contexts/NotificationsContext";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ export default function RiskAssessmentPage() {
   const [result, setResult] = useState<RiskResult | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [latestRecord, setLatestRecord] = useState<HealthRecordResponse | null>(null);
+  const [recentSymptoms, setRecentSymptoms] = useState<SymptomLog[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [form, setForm] = useState({
     age: user?.age?.toString() ?? "32",
@@ -87,6 +89,14 @@ export default function RiskAssessmentPage() {
       });
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    symptomsApi.getMySymptoms()
+      .then((items) => setRecentSymptoms(items.slice(0, 5)))
+      .catch(() => setRecentSymptoms([]));
+  }, [user?.id]);
+
   const updateField = (field: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
     setHasChanges(true);
@@ -105,6 +115,11 @@ export default function RiskAssessmentPage() {
     setValidationErrors({});
 
     try {
+      const recentSymptomText = recentSymptoms.map((item) => item.symptom).join(", ");
+      const symptomInput = form.symptoms && form.symptoms !== "none"
+        ? form.symptoms
+        : recentSymptomText || "none";
+
       const prediction = await predictionsApi.predict({
         userId: Number(user.id),
         healthRecordId: latestRecord && !hasChanges ? latestRecord.id : undefined,
@@ -120,7 +135,7 @@ export default function RiskAssessmentPage() {
         sleepHours: Number(form.sleepHours),
         stressLevel: Number(form.stressLevel),
         smokingStatus: form.smokingStatus,
-        symptoms: form.symptoms,
+        symptoms: symptomInput,
       });
 
       setResult({
@@ -257,6 +272,20 @@ export default function RiskAssessmentPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {recentSymptoms.length > 0 && (
+                <div className="rounded-xl border bg-white/60 p-3">
+                  <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <Stethoscope className="size-3.5 text-[#14B8C4]" /> Latest symptom logs
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {recentSymptoms.map((item) => (
+                      <Badge key={item.id} variant="outline" className="border-[#14B8C4]/30 bg-[#14B8C4]/10 text-[#0E7490]">
+                        {item.symptom}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
               <Button onClick={runPrediction} disabled={loading} className="w-full gradient-primary text-primary-foreground">
                 {loading ? (
                   <span className="flex items-center gap-2"><Zap className="w-4 h-4 animate-pulse-glow" /> Analyzing...</span>
