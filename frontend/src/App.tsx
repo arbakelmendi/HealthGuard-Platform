@@ -10,6 +10,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import Index from "./pages/Index";
 import DashboardPage from "./pages/DashboardPage";
 import MyProfilePage from "./pages/MyProfilePage";
 import HealthProfilePage from "./pages/HealthProfilePage";
@@ -44,7 +45,8 @@ function AuthPage({ children }: { children: React.ReactNode }) {
 }
 
 function HomeRoute() {
-  const { isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
+  if (!isAuthenticated) return <Index />;
   if (isAdmin) return <Navigate to="/admin/users" replace />;
   return <DashboardPage />;
 }
@@ -62,9 +64,9 @@ const App = () => (
             <Route path="/signup" element={<AuthPage><SignupPage /></AuthPage>} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/" element={<HomeRoute />} />
 
             {/* Protected user routes */}
-            <Route path="/" element={<ProtectedRoute><HomeRoute /></ProtectedRoute>} />
             <Route path="/my-profile" element={<ProtectedRoute><MyProfilePage /></ProtectedRoute>} />
             <Route path="/health-profile" element={<ProtectedRoute><HealthProfilePage /></ProtectedRoute>} />
             <Route path="/symptoms" element={<ProtectedRoute><SymptomsPage /></ProtectedRoute>} />
