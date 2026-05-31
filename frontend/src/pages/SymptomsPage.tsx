@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { symptomHistoryData } from "@/lib/mockData";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Stethoscope } from "lucide-react";
+import { UserPageContainer } from "@/components/PageContainers";
 
 export default function SymptomsPage() {
   const [search, setSearch] = useState("");
@@ -24,10 +25,12 @@ export default function SymptomsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <UserPageContainer>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-display font-bold">Symptoms</h1>
+            <h1 className="flex items-center gap-2 text-2xl font-display font-bold">
+              <Stethoscope className="h-6 w-6 text-[#14B8C4] stroke-[2.25]" /> Symptoms
+            </h1>
             <p className="text-muted-foreground text-sm">Log and track your symptoms over time.</p>
           </div>
         </div>
@@ -95,7 +98,7 @@ export default function SymptomsPage() {
             </Table>
           </CardContent>
         </Card>
-      </div>
+      </UserPageContainer>
     </DashboardLayout>
   );
 }

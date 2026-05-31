@@ -36,7 +36,6 @@ public class AuthService : IAuthService
             Weight = request.Weight,
             Height = request.Height,
             Phone = TrimOrNull(request.Phone),
-            City = TrimOrNull(request.City),
             BloodType = TrimOrNull(request.BloodType),
             ActivityLevel = TrimOrNull(request.ActivityLevel),
             ChronicConditions = TrimOrNull(request.ChronicConditions),

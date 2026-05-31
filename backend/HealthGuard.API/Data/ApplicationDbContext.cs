@@ -47,7 +47,6 @@ public class ApplicationDbContext : DbContext
 
             entity.Property(user => user.Gender).HasMaxLength(50);
             entity.Property(user => user.Phone).HasMaxLength(30);
-            entity.Property(user => user.City).HasMaxLength(100);
             entity.Property(user => user.BloodType).HasMaxLength(10);
             entity.Property(user => user.ActivityLevel).HasMaxLength(50);
             entity.Property(user => user.ChronicConditions).HasMaxLength(1000);

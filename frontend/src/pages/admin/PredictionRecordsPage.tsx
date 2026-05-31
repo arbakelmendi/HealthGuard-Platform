@@ -9,6 +9,7 @@ import { BarChart3, Search, Eye } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { predictionsApi, type AdminPredictionRecordResponse } from "@/lib/api";
+import { AdminPageContainer } from "@/components/PageContainers";
 
 export default function PredictionRecordsPage() {
   const [search, setSearch] = useState("");
@@ -41,9 +42,9 @@ export default function PredictionRecordsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <AdminPageContainer>
         <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2"><BarChart3 className="w-6 h-6" /> Prediction Records</h1>
+          <h1 className="text-2xl font-display font-bold flex items-center gap-2"><BarChart3 className="h-7 w-7 text-cyan-400" /> Prediction Records</h1>
           <p className="text-muted-foreground text-sm">View all prediction records across the platform.</p>
         </div>
 
@@ -125,7 +126,7 @@ export default function PredictionRecordsPage() {
             </Table>
           </CardContent>
         </Card>
-      </div>
+      </AdminPageContainer>
     </DashboardLayout>
   );
 }

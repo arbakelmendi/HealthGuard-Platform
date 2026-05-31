@@ -12,6 +12,7 @@ import { Brain, AlertTriangle, CheckCircle, Zap } from "lucide-react";
 import { healthRecordsApi, predictionsApi, type HealthRecordResponse } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { UserPageContainer } from "@/components/PageContainers";
 
 type RiskResult = {
   level: "Low" | "Medium" | "High";
@@ -145,15 +146,15 @@ export default function RiskAssessmentPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-5xl">
+      <UserPageContainer>
         <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <Brain className="w-6 h-6 text-primary" /> Risk Assessment
+          <h1 className="flex items-center gap-2 text-2xl font-display font-bold">
+            <Brain className="h-6 w-6 text-[#14B8C4] stroke-[2.25]" /> Risk Assessment
           </h1>
           <p className="text-muted-foreground text-sm">AI-powered health risk prediction engine.</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Input Form */}
           <Card className="shadow-card">
             <CardHeader><CardTitle className="text-base font-display">Input Parameters</CardTitle></CardHeader>
@@ -331,7 +332,7 @@ export default function RiskAssessmentPage() {
             )}
           </AnimatePresence>
         </div>
-      </div>
+      </UserPageContainer>
     </DashboardLayout>
   );
 }

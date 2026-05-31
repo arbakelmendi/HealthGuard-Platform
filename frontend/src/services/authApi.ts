@@ -22,7 +22,6 @@ export const authApi = {
       weight: request.weight,
       height: request.height,
       phone: request.phone?.trim() || undefined,
-      city: request.city?.trim() || undefined,
       bloodType: request.bloodType || undefined,
       activityLevel: request.activityLevel || undefined,
       chronicConditions: request.chronicConditions?.trim() || undefined,
@@ -44,7 +43,6 @@ export const authApi = {
       lastName: request.lastName?.trim(),
       email: request.email?.trim(),
       phone: request.phone?.trim() || undefined,
-      city: request.city?.trim() || undefined,
       chronicConditions: request.chronicConditions?.trim() || undefined,
       allergies: request.allergies?.trim() || undefined,
     });

@@ -16,7 +16,6 @@ export interface AuthUser {
   joinedDate: string;
   avatar?: string;
   phone?: string;
-  city?: string;
   age?: number;
   gender?: string;
   weight?: number;
@@ -40,7 +39,6 @@ export interface BackendUser {
   weight?: number;
   height?: number;
   phone?: string;
-  city?: string;
   bloodType?: string;
   activityLevel?: string;
   chronicConditions?: string;
@@ -68,7 +66,6 @@ export interface SignupRequest {
   weight: number;
   height: number;
   phone?: string;
-  city?: string;
   bloodType?: string;
   activityLevel?: string;
   chronicConditions?: string;
@@ -81,7 +78,6 @@ export interface UpdateProfileRequest {
   lastName?: string;
   email?: string;
   phone?: string;
-  city?: string;
   age?: number;
   gender?: string;
   weight?: number;
@@ -117,7 +113,6 @@ export interface AdminCreateUserRequest {
   weight?: number;
   height?: number;
   phone?: string;
-  city?: string;
   bloodType?: string;
   activityLevel?: string;
   chronicConditions?: string;
@@ -137,7 +132,6 @@ export interface AdminUpdateUserRequest {
   weight?: number;
   height?: number;
   phone?: string;
-  city?: string;
   bloodType?: string;
   activityLevel?: string;
   chronicConditions?: string;

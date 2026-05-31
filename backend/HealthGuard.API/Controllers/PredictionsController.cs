@@ -62,17 +62,15 @@ public class PredictionsController : ControllerBase
 
             predictionRequest = ToPredictionRequest(healthRecord);
         }
-        else
+
+        var validationErrors = ValidatePredictionInput(predictionRequest);
+        if (validationErrors.Count > 0)
         {
-            var validationErrors = ValidatePredictionInput(request);
-            if (validationErrors.Count > 0)
+            return BadRequest(new
             {
-                return BadRequest(new
-                {
-                    message = "Validation failed.",
-                    errors = validationErrors
-                });
-            }
+                message = "Validation failed.",
+                errors = validationErrors
+            });
         }
 
         var prediction = await _machineLearningPredictionService.TryPredictAsync(predictionRequest, cancellationToken);
@@ -90,7 +88,7 @@ public class PredictionsController : ControllerBase
 
         if (healthRecord is null)
         {
-            healthRecord = CreateHealthRecord(request, prediction.Bmi);
+            healthRecord = CreateHealthRecord(predictionRequest, prediction.Bmi);
             _dbContext.HealthRecords.Add(healthRecord);
         }
 
@@ -212,7 +210,7 @@ public class PredictionsController : ControllerBase
 
     private static void UpdatePredictionFields(HealthRecord record, PredictHealthRiskRequest request, decimal bmi)
     {
-        record.Gender = request.Gender!.Trim();
+        record.Gender = request.Gender?.Trim() ?? string.Empty;
         record.HeightCm = request.HeightCm!.Value;
         record.WeightKg = request.WeightKg!.Value;
         record.Height = request.HeightCm.Value;
@@ -224,10 +222,10 @@ public class PredictionsController : ControllerBase
         record.BloodSugar = request.BloodSugar!.Value;
         record.Glucose = request.BloodSugar.Value;
         record.Cholesterol = request.Cholesterol!.Value;
-        record.ActivityLevel = request.ActivityLevel!.Trim();
+        record.ActivityLevel = request.ActivityLevel?.Trim() ?? string.Empty;
         record.SleepHours = request.SleepHours!.Value;
         record.StressLevel = request.StressLevel!.Value;
-        record.SmokingStatus = request.SmokingStatus!.Trim();
+        record.SmokingStatus = request.SmokingStatus?.Trim() ?? string.Empty;
         record.Symptoms = request.Symptoms?.Trim() ?? string.Empty;
     }
 
@@ -265,10 +263,8 @@ public class PredictionsController : ControllerBase
         AddRequiredError(errors, nameof(request.DiastolicBp), request.DiastolicBp);
         AddRequiredError(errors, nameof(request.BloodSugar), request.BloodSugar);
         AddRequiredError(errors, nameof(request.Cholesterol), request.Cholesterol);
-        AddRequiredError(errors, nameof(request.ActivityLevel), request.ActivityLevel);
         AddRequiredError(errors, nameof(request.SleepHours), request.SleepHours);
         AddRequiredError(errors, nameof(request.StressLevel), request.StressLevel);
-        AddRequiredError(errors, nameof(request.SmokingStatus), request.SmokingStatus);
 
         return errors;
     }
@@ -277,7 +273,7 @@ public class PredictionsController : ControllerBase
     {
         if (value is null || value is string text && string.IsNullOrWhiteSpace(text))
         {
-            errors[field] = new[] { $"{field} is required when HealthRecordId is not provided." };
+            errors[field] = new[] { $"{field} is required for prediction." };
         }
     }
 

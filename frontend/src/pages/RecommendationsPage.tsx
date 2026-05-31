@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { recommendationsData } from "@/lib/mockData";
 import { motion } from "framer-motion";
 import { Brain } from "lucide-react";
+import { UserPageContainer } from "@/components/PageContainers";
 
 export default function RecommendationsPage() {
   const priorityColor = (p: string) =>
@@ -13,10 +14,10 @@ export default function RecommendationsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <UserPageContainer>
         <div>
           <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <Brain className="w-6 h-6 text-accent" /> Recommendations
+            <Brain className="h-6 w-6 text-[#14B8C4] stroke-[2.25]" /> Recommendations
           </h1>
           <p className="text-muted-foreground text-sm">AI-generated personalized health recommendations.</p>
         </div>
@@ -38,7 +39,7 @@ export default function RecommendationsPage() {
             </motion.div>
           ))}
         </div>
-      </div>
+      </UserPageContainer>
     </DashboardLayout>
   );
 }

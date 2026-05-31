@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, Calendar, Edit, MapPin, Phone, Save, Shield, TrendingUp, User } from "lucide-react";
+import { Activity, Calendar, Edit, Phone, Save, Shield, TrendingUp, User, UserCircle } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import type { UpdateProfileRequest } from "@/types/auth";
+import { UserPageContainer } from "@/components/PageContainers";
 
 export default function MyProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -21,7 +22,6 @@ export default function MyProfilePage() {
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
     phone: user?.phone || "",
-    city: user?.city || "",
     age: user?.age,
     gender: user?.gender || "",
     weight: user?.weight,
@@ -38,7 +38,6 @@ export default function MyProfilePage() {
       firstName: user?.firstName || "",
       lastName: user?.lastName || "",
       phone: user?.phone || "",
-      city: user?.city || "",
       age: user?.age,
       gender: user?.gender || "",
       weight: user?.weight,
@@ -87,9 +86,11 @@ export default function MyProfilePage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-5xl mx-auto">
+      <UserPageContainer>
         <div>
-          <h1 className="text-2xl font-display font-bold">My Profile</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-display font-bold">
+            <UserCircle className="h-6 w-6 text-[#14B8C4] stroke-[2.25]" /> My Profile
+          </h1>
           <p className="text-muted-foreground text-sm">Manage your personal and health information.</p>
         </div>
 
@@ -171,10 +172,6 @@ export default function MyProfilePage() {
                 <Input value={form.phone || ""} disabled={!editing} onChange={(e) => setField("phone", e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>City</Label>
-                <Input value={form.city || ""} disabled={!editing} onChange={(e) => setField("city", e.target.value)} />
-              </div>
-              <div className="space-y-2">
                 <Label>Gender</Label>
                 <Select value={form.gender || ""} disabled={!editing} onValueChange={(value) => setField("gender", value)}>
                   <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
@@ -246,7 +243,7 @@ export default function MyProfilePage() {
               </div>
             </div>
             <Separator />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">Auto-Calculated BMI</p>
                 <p className="text-2xl font-display font-bold">{bmi}</p>
@@ -255,14 +252,10 @@ export default function MyProfilePage() {
                 <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" /> Contact</p>
                 <p className="text-sm font-medium">{form.phone || "Not provided"}</p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> City</p>
-                <p className="text-sm font-medium">{form.city || "Not provided"}</p>
-              </div>
             </div>
           </CardContent>
         </Card>
-      </div>
+      </UserPageContainer>
     </DashboardLayout>
   );
 }

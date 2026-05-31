@@ -4,10 +4,10 @@ import { ArrowLeft, ArrowRight, HeartPulse, ShieldCheck, Sparkles, Stethoscope, 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import type { SignupRequest } from "@/types/auth";
 
@@ -32,7 +32,6 @@ const initialForm: SignupForm = {
   weight: "",
   height: "",
   phone: "",
-  city: "",
   bloodType: "",
   activityLevel: "",
   chronicConditions: "",
@@ -42,8 +41,33 @@ const initialForm: SignupForm = {
 
 const accountFields: SignupField[] = ["firstName", "lastName", "email", "password", "confirmPassword"];
 const healthFields: SignupField[] = ["age", "gender", "weight", "height"];
+const accountFieldSet = new Set<SignupField>(accountFields);
+const healthFieldSet = new Set<SignupField>(healthFields);
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const namePattern = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/;
+const chronicConditionOptions = [
+  "Diabetes (Type 1)", "Diabetes (Type 2)", "Prediabetes", "Hypertension (High Blood Pressure)",
+  "Heart Disease", "Coronary Artery Disease", "Heart Failure", "Arrhythmia", "Asthma",
+  "Chronic Obstructive Pulmonary Disease (COPD)", "Chronic Kidney Disease", "Liver Disease",
+  "Stroke History", "High Cholesterol (Hyperlipidemia)", "Arthritis", "Osteoporosis",
+  "Thyroid Disorder", "Cancer", "Depression", "Anxiety Disorder", "Epilepsy / Seizure Disorder",
+  "Autoimmune Disease", "Sleep Apnea", "Obesity", "None", "Other",
+];
+const allergyOptions = [
+  "Pollen", "Dust", "Mold", "Pet Dander", "Insect Stings", "Peanuts", "Tree Nuts",
+  "Milk / Dairy", "Eggs", "Soy", "Wheat / Gluten", "Fish", "Shellfish", "Sesame",
+  "Penicillin", "Antibiotics (Other)", "Aspirin", "Ibuprofen / NSAIDs", "Latex",
+  "Contrast Dye", "Fragrances / Perfumes", "None", "Other",
+];
+
+const parseMulti = (value: string) => value ? value.split(", ").filter(Boolean) : [];
+const toggleMultiValue = (current: string, option: string) => {
+  const selected = parseMulti(current);
+  if (option === "None") return selected.includes("None") ? "" : "None";
+  const withoutNone = selected.filter((item) => item !== "None");
+  const next = withoutNone.includes(option) ? withoutNone.filter((item) => item !== option) : [...withoutNone, option];
+  return next.join(", ");
+};
 
 const getFieldError = (field: SignupField, form: SignupForm): string => {
   const value = form[field];
@@ -104,12 +128,22 @@ const validateFields = (fields: SignupField[], form: SignupForm): SignupErrors =
     return acc;
   }, {});
 
+const clearFields = <T extends Partial<Record<SignupField, unknown>>>(state: T, fields: SignupField[]) => {
+  const next = { ...state };
+  fields.forEach((field) => {
+    delete next[field];
+  });
+  return next;
+};
+
 export default function SignupPage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<SignupForm>(initialForm);
   const [errors, setErrors] = useState<SignupErrors>({});
   const [touched, setTouched] = useState<SignupTouched>({});
-  const [submitted, setSubmitted] = useState(false);
+  const [accountSubmitted, setAccountSubmitted] = useState(false);
+  const [healthSubmitted, setHealthSubmitted] = useState(false);
+  const [showHealthErrors, setShowHealthErrors] = useState(false);
   const [apiError, setApiError] = useState("");
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
@@ -119,7 +153,12 @@ export default function SignupPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
     setApiError("");
 
-    if (submitted || touched[field]) {
+    const shouldRevalidate =
+      touched[field] ||
+      (accountFieldSet.has(field) && accountSubmitted) ||
+      (healthFieldSet.has(field) && healthSubmitted);
+
+    if (shouldRevalidate) {
       setErrors((prev) => {
         const next = { ...prev };
         const error = getFieldError(field, { ...form, [field]: value });
@@ -129,7 +168,7 @@ export default function SignupPage() {
           delete next[field];
         }
 
-        if ((field === "password" || field === "confirmPassword") && (submitted || touched.confirmPassword || touched.password)) {
+        if ((field === "password" || field === "confirmPassword") && (accountSubmitted || touched.confirmPassword || touched.password)) {
           const passwordError = getFieldError("password", { ...form, [field]: value });
           const confirmPasswordError = getFieldError("confirmPassword", { ...form, [field]: value });
 
@@ -156,7 +195,7 @@ export default function SignupPage() {
 
       if (field === "password" || field === "confirmPassword") {
         const confirmPasswordError = getFieldError("confirmPassword", form);
-        if (confirmPasswordError && (field === "confirmPassword" || touched.confirmPassword || submitted)) {
+        if (confirmPasswordError && (field === "confirmPassword" || touched.confirmPassword || accountSubmitted)) {
           next.confirmPassword = confirmPasswordError;
         } else if (!confirmPasswordError) {
           delete next.confirmPassword;
@@ -167,11 +206,19 @@ export default function SignupPage() {
     });
   };
 
-  const shouldShowError = (field: SignupField) => Boolean(errors[field] && (submitted || touched[field]));
+  const shouldShowError = (field: SignupField) => {
+    if (healthFieldSet.has(field)) {
+      return Boolean(errors[field] && (showHealthErrors || touched[field]));
+    }
+
+    return Boolean(errors[field] && (accountSubmitted || touched[field]));
+  };
 
   const goNext = () => {
+    // Continue validates Step 1 only. Step 2 fields must stay pristine until
+    // Create Account or individual blur.
     const nextErrors = validateFields(accountFields, form);
-    setSubmitted(true);
+    setAccountSubmitted(true);
     setTouched((prev) => ({
       ...prev,
       firstName: true,
@@ -180,28 +227,26 @@ export default function SignupPage() {
       password: true,
       confirmPassword: true,
     }));
-    setErrors((prev) => ({ ...prev, ...nextErrors }));
+    setErrors((prev) => ({ ...clearFields(prev, healthFields), ...nextErrors }));
 
     if (Object.keys(nextErrors).length > 0) {
       return;
     }
 
-    setStep(2);
     setApiError("");
+    setShowHealthErrors(false);
+    setHealthSubmitted(false);
+    setErrors((prev) => clearFields(prev, healthFields));
+    setTouched((prev) => clearFields(prev, healthFields));
+    setStep(2);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const nextErrors = validateFields([...accountFields, ...healthFields], form);
-    setSubmitted(true);
-    setTouched((prev) => ({
-      ...prev,
-      age: true,
-      gender: true,
-      weight: true,
-      height: true,
-    }));
+    const nextErrors = validateFields(healthFields, form);
+    setShowHealthErrors(true);
+    setHealthSubmitted(true);
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
@@ -212,11 +257,12 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
+      const { age, weight, height, ...optionalFields } = form;
       await signup({
-        ...form,
-        age: Number(form.age),
-        weight: Number(form.weight),
-        height: Number(form.height),
+        ...optionalFields,
+        age: Number(age),
+        weight: Number(weight),
+        height: Number(height),
       });
       toast.success("Account created.");
       navigate("/", { replace: true });
@@ -231,10 +277,10 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen grid bg-background lg:grid-cols-[0.9fr_1.1fr]">
+    <div className="grid min-h-screen bg-background lg:grid-cols-[0.9fr_1.1fr]">
       <div className="relative hidden overflow-hidden lg:block gradient-hero">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_15%,rgba(255,255,255,0.36),transparent_45%)]" />
-        <div className="relative flex h-full flex-col p-12 text-white">
+        <div className="relative flex h-full flex-col p-8 text-white xl:p-10">
           <Link to="/" className="flex items-center gap-3">
             <div className="grid size-11 place-items-center rounded-2xl border border-white/20 bg-white/15 backdrop-blur">
               <Stethoscope className="size-6" />
@@ -242,10 +288,10 @@ export default function SignupPage() {
             <span className="font-display text-xl font-bold">HealthGuard</span>
           </Link>
           <div className="my-auto max-w-md">
-            <p className="mb-4 text-sm uppercase tracking-[0.24em] text-white/70">Personalized risk intelligence</p>
-            <h1 className="font-display text-5xl font-bold leading-tight">Build your health baseline in minutes.</h1>
+            <p className="mb-3 text-sm uppercase tracking-[0.24em] text-white/70">Personalized risk intelligence</p>
+            <h1 className="font-display text-4xl font-bold leading-tight xl:text-5xl">Build your health baseline in minutes.</h1>
             <p className="mt-5 text-white/78">The registration flow still uses the current HealthGuard backend and creates a real account.</p>
-            <div className="mt-10 grid grid-cols-3 gap-3">
+            <div className="mt-8 grid grid-cols-3 gap-3">
               {[
                 { icon: HeartPulse, label: "Vitals" },
                 { icon: ShieldCheck, label: "Secure" },
@@ -261,22 +307,22 @@ export default function SignupPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center p-6 md:p-10">
-        <div className="w-full max-w-3xl">
-          <Link to="/" className="mb-8 flex items-center gap-3 lg:hidden">
+      <div className="flex items-center justify-center p-4 md:p-5">
+        <div className="w-full max-w-4xl">
+          <Link to="/" className="mb-5 flex items-center gap-3 lg:hidden">
             <div className="grid size-10 place-items-center rounded-2xl gradient-primary">
               <Stethoscope className="size-5 text-white" />
             </div>
             <span className="font-display text-lg font-bold">HealthGuard</span>
           </Link>
 
-          <Card className="border-0 bg-transparent shadow-none">
-          <CardHeader className="px-0 pb-6">
-            <CardTitle className="font-display text-3xl">Create account</CardTitle>
+          <Card className="rounded-3xl border bg-white/84 shadow-card backdrop-blur">
+          <CardHeader className="pb-2">
+            <CardTitle className="font-display text-2xl">Create account</CardTitle>
             <CardDescription>{step === 1 ? "Step 1 of 2: Account information" : "Step 2 of 2: Personal and health information"}</CardDescription>
           </CardHeader>
-          <CardContent className="px-0">
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-3" noValidate>
               {step === 1 ? (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -339,7 +385,9 @@ export default function SignupPage() {
                 </>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div className="rounded-2xl border bg-white/65 p-3.5">
+                    <h3 className="mb-2.5 text-sm font-semibold text-foreground">Core health details</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div className="space-y-2">
                       <Label htmlFor="age">Age</Label>
                       <Input
@@ -359,17 +407,14 @@ export default function SignupPage() {
                         value={form.gender}
                         onValueChange={(value) => {
                           setField("gender", value);
-                          setTouched((prev) => ({ ...prev, gender: true }));
                         }}
                       >
                         <SelectTrigger onBlur={() => markTouched("gender")}>
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Female">Female</SelectItem>
                           <SelectItem value="Male">Male</SelectItem>
-                          <SelectItem value="Non-binary">Non-binary</SelectItem>
-                          <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
                         </SelectContent>
                       </Select>
                       {shouldShowError("gender") && <p className="text-sm text-destructive">{errors.gender}</p>}
@@ -401,14 +446,13 @@ export default function SignupPage() {
                       {shouldShowError("height") && <p className="text-sm text-destructive">{errors.height}</p>}
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  </div>
+                  <div className="rounded-2xl border bg-white/65 p-3.5">
+                    <h3 className="mb-2.5 text-sm font-semibold text-foreground">Contact and lifestyle</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:grid-cols-4">
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone</Label>
                       <Input id="phone" value={form.phone} onChange={(e) => setField("phone", e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input id="city" value={form.city} onChange={(e) => setField("city", e.target.value)} />
                     </div>
                     <div className="space-y-2">
                       <Label>Blood Type</Label>
@@ -432,27 +476,32 @@ export default function SignupPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label htmlFor="chronicConditions">Chronic Conditions</Label>
-                      <Textarea id="chronicConditions" value={form.chronicConditions} onChange={(e) => setField("chronicConditions", e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="allergies">Allergies</Label>
-                      <Textarea id="allergies" value={form.allergies} onChange={(e) => setField("allergies", e.target.value)} />
+                      <Label>Smoking Status</Label>
+                      <Select value={form.smokingStatus} onValueChange={(value) => setField("smokingStatus", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Optional" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["Never", "Former", "Current"].map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Smoking Status</Label>
-                    <Select value={form.smokingStatus} onValueChange={(value) => setField("smokingStatus", value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Optional" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {["Never", "Former", "Current", "Prefer not to say"].map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                    <MultiSelectPanel
+                      title="Chronic Conditions"
+                      options={chronicConditionOptions}
+                      value={form.chronicConditions}
+                      onChange={(option) => setField("chronicConditions", toggleMultiValue(form.chronicConditions || "", option))}
+                    />
+                    <MultiSelectPanel
+                      title="Allergies"
+                      options={allergyOptions}
+                      value={form.allergies}
+                      onChange={(option) => setField("allergies", toggleMultiValue(form.allergies || "", option))}
+                    />
                   </div>
                 </>
               )}
@@ -469,7 +518,14 @@ export default function SignupPage() {
                   <span />
                 )}
                 {step === 1 ? (
-                  <Button type="button" className="gradient-primary text-primary-foreground" onClick={goNext}>
+                  <Button
+                    type="button"
+                    className="gradient-primary text-primary-foreground"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      goNext();
+                    }}
+                  >
                     Continue
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
@@ -490,6 +546,47 @@ export default function SignupPage() {
           </CardContent>
         </Card>
       </div>
+      </div>
+    </div>
+  );
+}
+
+function MultiSelectPanel({
+  title,
+  options,
+  value,
+  onChange,
+}: {
+  title: string;
+  options: string[];
+  value?: string;
+  onChange: (option: string) => void;
+}) {
+  const selected = parseMulti(value || "");
+
+  return (
+    <div className="rounded-2xl border bg-white/65 p-3.5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{selected.length || 0} selected</span>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {options.map((option) => {
+          const checked = selected.includes(option);
+          return (
+          <label
+            key={option}
+            className={`flex min-h-9 items-center gap-2 rounded-xl border px-2.5 py-1.5 text-[11px] leading-snug transition hover:-translate-y-0.5 ${
+              checked
+                ? "border-cyan-400 bg-cyan-50 text-cyan-800 shadow-[0_0_0_1px_rgba(34,211,238,0.22)]"
+                : "border-border/70 bg-white/55 text-foreground hover:bg-white"
+            }`}
+          >
+            <Checkbox checked={checked} onCheckedChange={() => onChange(option)} />
+            <span>{option}</span>
+          </label>
+          );
+        })}
       </div>
     </div>
   );

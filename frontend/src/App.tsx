@@ -24,6 +24,7 @@ import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
 // Admin pages
+import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import UsersManagementPage from "./pages/admin/UsersManagementPage";
 import PredictionRecordsPage from "./pages/admin/PredictionRecordsPage";
 import DatasetsPage from "./pages/admin/DatasetsPage";
@@ -39,7 +40,7 @@ const queryClient = new QueryClient();
 function AuthPage({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isAdmin } = useAuth();
   if (isAuthenticated) {
-    return <Navigate to={isAdmin ? "/admin/users" : "/"} replace />;
+    return <Navigate to={isAdmin ? "/admin/dashboard" : "/"} replace />;
   }
   return <>{children}</>;
 }
@@ -47,7 +48,7 @@ function AuthPage({ children }: { children: React.ReactNode }) {
 function HomeRoute() {
   const { isAuthenticated, isAdmin } = useAuth();
   if (!isAuthenticated) return <Index />;
-  if (isAdmin) return <Navigate to="/admin/users" replace />;
+  if (isAdmin) return <Navigate to="/admin/dashboard" replace />;
   return <DashboardPage />;
 }
 
@@ -78,6 +79,7 @@ const App = () => (
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
             {/* Admin routes */}
+            <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="admin"><AdminDashboardPage /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UsersManagementPage /></ProtectedRoute>} />
             <Route path="/admin/predictions" element={<ProtectedRoute requiredRole="admin"><PredictionRecordsPage /></ProtectedRoute>} />
             <Route path="/admin/datasets" element={<ProtectedRoute requiredRole="admin"><DatasetsPage /></ProtectedRoute>} />
@@ -89,7 +91,7 @@ const App = () => (
             <Route path="/ml/tuning" element={<ProtectedRoute requiredRole="admin"><ModelTuningPage /></ProtectedRoute>} />
 
             {/* Legacy admin route redirect */}
-            <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

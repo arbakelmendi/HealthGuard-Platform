@@ -37,9 +37,6 @@ public class User
     [MaxLength(30)]
     public string? Phone { get; set; }
 
-    [MaxLength(100)]
-    public string? City { get; set; }
-
     [MaxLength(10)]
     public string? BloodType { get; set; }
 

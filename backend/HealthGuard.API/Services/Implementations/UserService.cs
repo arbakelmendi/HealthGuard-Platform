@@ -63,7 +63,6 @@ public class UserService : IUserService
             Weight = request.Weight,
             Height = request.Height,
             Phone = TrimOrNull(request.Phone),
-            City = TrimOrNull(request.City),
             BloodType = TrimOrNull(request.BloodType),
             ActivityLevel = TrimOrNull(request.ActivityLevel),
             ChronicConditions = TrimOrNull(request.ChronicConditions),
@@ -95,7 +94,6 @@ public class UserService : IUserService
         user.Weight = request.Weight;
         user.Height = request.Height;
         user.Phone = TrimOrNull(request.Phone);
-        user.City = TrimOrNull(request.City);
         user.BloodType = TrimOrNull(request.BloodType);
         user.ActivityLevel = TrimOrNull(request.ActivityLevel);
         user.ChronicConditions = TrimOrNull(request.ChronicConditions);
@@ -150,7 +148,6 @@ public class UserService : IUserService
         user.Weight = request.Weight;
         user.Height = request.Height;
         user.Phone = TrimOrNull(request.Phone);
-        user.City = TrimOrNull(request.City);
         user.BloodType = TrimOrNull(request.BloodType);
         user.ActivityLevel = TrimOrNull(request.ActivityLevel);
         user.ChronicConditions = TrimOrNull(request.ChronicConditions);

@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { healthRecordsApi, type HealthRecordPayload, type HealthRecordResponse } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { UserPageContainer } from "@/components/PageContainers";
 
 export default function HealthProfilePage() {
   const { user } = useAuth();
@@ -126,7 +127,7 @@ export default function HealthProfilePage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-4xl">
+      <UserPageContainer>
         <div>
           <h1 className="text-2xl font-display font-bold">Health Profile</h1>
           <p className="text-muted-foreground text-sm">Manage your personal health information.</p>
@@ -255,7 +256,7 @@ export default function HealthProfilePage() {
         <Button onClick={handleSave} disabled={saving} className="gradient-primary text-primary-foreground px-8">
           {saving ? "Saving..." : "Save Profile"}
         </Button>
-      </div>
+      </UserPageContainer>
     </DashboardLayout>
   );
 }

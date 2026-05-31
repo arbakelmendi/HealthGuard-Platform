@@ -37,9 +37,6 @@ public class UpdateUserDto
     [StringLength(30)]
     public string? Phone { get; set; }
 
-    [StringLength(100)]
-    public string? City { get; set; }
-
     [StringLength(10)]
     public string? BloodType { get; set; }
 

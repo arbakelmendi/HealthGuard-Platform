@@ -47,7 +47,7 @@ export default function LoginPage() {
       const user = await login(email, password, rememberMe);
       toast.success("Welcome back.");
       const from = (location.state as { from?: string } | null)?.from;
-      navigate(from && from !== "/login" ? from : user.role === "admin" ? "/admin/users" : "/", { replace: true });
+      navigate(from && from !== "/login" ? from : user.role === "admin" ? "/admin/dashboard" : "/", { replace: true });
     } catch (err) {
       console.error("API ERROR:", err);
       const message = getLoginErrorMessage(err);
@@ -59,23 +59,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-background">
+    <div className="grid min-h-screen bg-background lg:grid-cols-[1.05fr_0.95fr]">
       <div className="relative hidden overflow-hidden lg:block gradient-hero">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.42),transparent_45%)]" />
-        <div className="relative flex h-full flex-col p-12 text-white">
+        <div className="relative flex h-full flex-col p-10 text-white xl:p-14">
           <Link to="/" className="flex items-center gap-3">
             <div className="grid size-11 place-items-center rounded-2xl border border-white/20 bg-white/15 backdrop-blur">
               <Stethoscope className="size-6" />
             </div>
             <span className="font-display text-xl font-bold">HealthGuard</span>
           </Link>
-          <div className="my-auto max-w-lg">
+          <div className="my-auto max-w-xl">
             <p className="mb-4 text-sm uppercase tracking-[0.24em] text-white/70">AI health intelligence</p>
-            <h1 className="font-display text-5xl font-bold leading-tight">Welcome back. Your HealthScore is waiting.</h1>
+            <h1 className="font-display text-4xl font-bold leading-tight xl:text-5xl">Welcome back. Your HealthScore is waiting.</h1>
             <p className="mt-5 max-w-md text-white/78">
               Sign in to continue tracking risk signals, recommendations, and admin workflows with the connected HealthGuard backend.
             </p>
-            <div className="mt-10 grid grid-cols-3 gap-3">
+            <div className="mt-8 grid grid-cols-3 gap-3">
               {[
                 { icon: Heart, label: "Cardio" },
                 { icon: ShieldCheck, label: "Protected" },
@@ -91,8 +91,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center p-6 md:p-12">
-        <div className="w-full max-w-md">
+      <div className="flex items-center justify-center p-6 md:p-10">
+        <div className="w-full max-w-[390px]">
           <Link to="/" className="mb-8 flex items-center gap-3 lg:hidden">
             <div className="grid size-10 place-items-center rounded-2xl gradient-primary">
               <Stethoscope className="size-5 text-white" />
@@ -100,13 +100,13 @@ export default function LoginPage() {
             <span className="font-display text-lg font-bold">HealthGuard</span>
           </Link>
 
-          <Card className="border-0 bg-transparent shadow-none">
-            <CardHeader className="px-0 pb-6">
-              <CardTitle className="font-display text-3xl">Sign in</CardTitle>
+          <Card className="rounded-3xl border bg-white/82 shadow-card backdrop-blur">
+            <CardHeader className="pb-5">
+              <CardTitle className="font-display text-2xl">Sign in</CardTitle>
               <CardDescription className="text-base">Continue to your dashboard.</CardDescription>
             </CardHeader>
-            <CardContent className="px-0">
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-3.5">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" placeholder="you@health.io" value={email} onChange={(e) => setEmail(e.target.value)} />
