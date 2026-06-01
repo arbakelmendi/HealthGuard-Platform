@@ -83,21 +83,21 @@ The models were evaluated using accuracy, precision, recall, F1-score, confusion
 
 Two neural network architectures were tested:
 
-1. Neural Network Architecture 1
-   - Input layer
-   - Dense layer with 16 neurons and ReLU activation
-   - Dense layer with 8 neurons and ReLU activation
-   - Output layer with sigmoid activation
+| Architecture | Hidden Layers | Neurons per Hidden Layer | Hidden Activation | Output Layer | Output Activation | Optimizer | Learning Rate | Loss | Epochs | Batch Size | Validation Split |
+|---|---:|---|---|---|---|---|---:|---|---:|---:|---:|
+| Neural Network Architecture 1 | 2 | 16, 8 | ReLU | 1 neuron | Sigmoid | Adam | 0.001 | Binary cross-entropy | 50 | 16 | 20% |
+| Neural Network Architecture 2 | 3 + dropout | 32, 16, 8 | ReLU | 1 neuron | Sigmoid | Adam | 0.001 | Binary cross-entropy | 50 | 16 | 20% |
 
-2. Neural Network Architecture 2
-   - Input layer
-   - Dense layer with 32 neurons and ReLU activation
-   - Dropout layer
-   - Dense layer with 16 neurons and ReLU activation
-   - Dense layer with 8 neurons and ReLU activation
-   - Output layer with sigmoid activation
+Architecture 1 was the smaller baseline network. It used two hidden layers with 16 and 8 neurons. Architecture 2 increased capacity by using a wider first hidden layer with 32 neurons, adding a dropout layer with rate `0.3`, and then using 16-neuron and 8-neuron hidden layers. Both networks used ReLU activation in hidden layers and sigmoid activation in the output layer because the task is binary classification.
 
-Both neural networks used binary cross-entropy loss and the Adam optimizer.
+Neural network performance comparison:
+
+| Model | Architecture Change | Final Accuracy | Final Precision | Final Recall | Final F1-score | Final ROC-AUC | Cross-validation F1 Mean |
+|---|---|---:|---:|---:|---:|---:|---:|
+| Neural Network Architecture 1 | Smaller baseline: `16 -> 8 -> output`, no dropout | 0.7869 | 0.8125 | 0.7879 | 0.8000 | 0.8615 | 0.8512 |
+| Neural Network Architecture 2 | Larger model: `32 -> Dropout(0.3) -> 16 -> 8 -> output` | 0.7705 | 0.7714 | 0.8182 | 0.7941 | 0.8517 | 0.8361 |
+
+Architecture 2 found slightly more positive cases on the final test set, shown by higher recall (`0.8182` vs `0.7879`). However, Architecture 1 had better accuracy, precision, F1-score and ROC-AUC. This suggests the larger model and dropout did not provide a clear advantage on the cleaned tabular dataset. The dataset is relatively small for deep learning, so the simpler Architecture 1 generalized slightly better while the larger Architecture 2 produced more false positives.
 
 ## Hyperparameter Tuning Summary
 
