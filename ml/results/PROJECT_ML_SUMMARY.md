@@ -67,16 +67,22 @@ Both neural networks used binary cross-entropy loss and the Adam optimizer.
 
 Classical machine learning models were tuned using `GridSearchCV` with 5-fold cross-validation and F1-score as the optimization metric.
 
-Best hyperparameters from the final model comparison were:
+Best hyperparameters and final test metrics from `ml/results/final_model_results.csv` were:
 
-| Model | Best Parameters |
-|---|---|
-| Logistic Regression | `C=0.01`, `solver=lbfgs` |
-| Decision Tree | `criterion=entropy`, `max_depth=3` |
-| KNN | `n_neighbors=9`, `weights=uniform` |
-| Random Forest | `criterion=entropy`, `max_depth=3`, `n_estimators=200` |
-| Logistic Regression with Feature Selection | `C=0.1`, `solver=lbfgs` |
-| Random Forest with Feature Selection | `criterion=entropy`, `max_depth=3`, `n_estimators=50` |
+| Model | Best Parameters | Accuracy | Precision | Recall | F1-score | ROC-AUC |
+|---|---|---:|---:|---:|---:|---:|
+| Logistic Regression with Feature Selection | `C=0.1`, `solver=lbfgs` | 0.8197 | 0.8235 | 0.8485 | 0.8358 | 0.8799 |
+| Logistic Regression | `C=0.01`, `solver=lbfgs` | 0.8033 | 0.7838 | 0.8788 | 0.8286 | 0.8810 |
+| KNN | `n_neighbors=9`, `weights=uniform` | 0.8033 | 0.7838 | 0.8788 | 0.8286 | 0.8626 |
+| Random Forest | `criterion=entropy`, `max_depth=3`, `n_estimators=200` | 0.8033 | 0.8000 | 0.8485 | 0.8235 | 0.8755 |
+| KNN with Feature Selection | `n_neighbors=9`, `weights=uniform` | 0.8033 | 0.8000 | 0.8485 | 0.8235 | 0.8626 |
+| Random Forest with Feature Selection | `criterion=entropy`, `max_depth=3`, `n_estimators=50` | 0.7869 | 0.7778 | 0.8485 | 0.8116 | 0.8680 |
+| Decision Tree | `criterion=entropy`, `max_depth=3` | 0.7705 | 0.7436 | 0.8788 | 0.8056 | 0.8306 |
+| Neural Network Architecture 1 | `16 -> 8 -> output` | 0.7869 | 0.8125 | 0.7879 | 0.8000 | 0.8615 |
+| Neural Network Architecture 2 | `32 -> Dropout -> 16 -> 8 -> output` | 0.7705 | 0.7714 | 0.8182 | 0.7941 | 0.8517 |
+| Decision Tree with Feature Selection | `criterion=entropy`, `max_depth=3` | 0.7541 | 0.7647 | 0.7879 | 0.7761 | 0.7900 |
+
+No final model achieved perfect 1.0 test metrics. Earlier exported perfect scores were treated as outdated and replaced with the final train-test evaluation values above.
 
 The tuning process helped compare models fairly and reduced the risk of selecting a weak configuration by chance.
 
@@ -104,7 +110,7 @@ The features removed in the Top 5 setup were:
 
 `age`, `sex`, `trestbps`, `chol`, `fbs`, `restecg`, `thalach`, `slope`
 
-Feature reduction did not improve all models equally. Decision Tree performance stayed strong with reduced feature sets, and the Neural Network improved with the Top 5 feature set in the feature-selection study. Logistic Regression, KNN and Random Forest generally lost some performance when features were removed, showing that they still benefited from the full feature set.
+Feature reduction did not improve all models equally. Logistic Regression improved slightly with the selected 8-feature set in the final train-test comparison, while Decision Tree and Random Forest lost some performance. KNN stayed close to its all-feature result. This shows that feature reduction can help interpretability, but it must be validated with metrics instead of assumed to improve every model.
 
 The feature importance analysis also showed that the most influential features included:
 
