@@ -41,20 +41,22 @@ public class AdminDatasetsController : ControllerBase
     }
 
     [HttpPost("upload")]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult<DatasetResponseDto>> Upload(
         [FromForm] UploadDatasetRequestDto request,
-        [FromForm] IFormFile file,
+        IFormFile file,
         CancellationToken cancellationToken)
     {
         return Ok(await _datasetService.UploadAsync(GetCurrentUserId(), request, file, cancellationToken));
     }
 
     [HttpPost("{id:int}/replace")]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult<DatasetResponseDto>> Replace(
         int id,
-        [FromForm] IFormFile file,
+        IFormFile file,
         CancellationToken cancellationToken)
     {
         return Ok(await _datasetService.ReplaceAsync(GetCurrentUserId(), id, file, cancellationToken));
