@@ -4,6 +4,7 @@ using HealthGuard.API.DTOs.Common;
 using HealthGuard.API.DTOs.Notifications;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
+using HealthGuard.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,23 +17,56 @@ namespace HealthGuard.API.Controllers;
 public class NotificationsController : ControllerBase
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly IRealtimeNotificationService _realtimeNotificationService;
 
-    public NotificationsController(ApplicationDbContext dbContext)
+    public NotificationsController(ApplicationDbContext dbContext, IRealtimeNotificationService realtimeNotificationService)
     {
         _dbContext = dbContext;
+        _realtimeNotificationService = realtimeNotificationService;
     }
 
     [HttpGet("user/{userId:int}")]
     public async Task<ActionResult<IReadOnlyList<NotificationResponseDto>>> GetByUser(
         int userId,
-        CancellationToken cancellationToken)
+        [FromQuery] string? search,
+        [FromQuery] string? type,
+        [FromQuery] string? source,
+        [FromQuery] bool? isRead,
+        [FromQuery] string sortDirection = "desc",
+        CancellationToken cancellationToken = default)
     {
         EnsureCanAccessUser(userId);
 
-        var notifications = await _dbContext.Notifications
+        var query = _dbContext.Notifications
             .AsNoTracking()
-            .Where(notification => notification.UserId == userId)
-            .OrderByDescending(notification => notification.CreatedAt)
+            .Where(notification => notification.UserId == userId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(notification => notification.Title.Contains(term) || notification.Message.Contains(term));
+        }
+
+        if (!string.IsNullOrWhiteSpace(type))
+        {
+            query = query.Where(notification => notification.Type == type);
+        }
+
+        if (!string.IsNullOrWhiteSpace(source))
+        {
+            query = query.Where(notification => notification.Source == source);
+        }
+
+        if (isRead.HasValue)
+        {
+            query = query.Where(notification => notification.IsRead == isRead.Value);
+        }
+
+        query = sortDirection.Equals("asc", StringComparison.OrdinalIgnoreCase)
+            ? query.OrderBy(notification => notification.CreatedAt)
+            : query.OrderByDescending(notification => notification.CreatedAt);
+
+        var notifications = await query
             .ToListAsync(cancellationToken);
 
         return Ok(notifications.Select(ToResponse).ToList());
@@ -155,6 +189,7 @@ public class NotificationsController : ControllerBase
 
         _dbContext.Notifications.Add(notification);
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await _realtimeNotificationService.SendNotificationAsync(notification, cancellationToken);
 
         return CreatedAtAction(nameof(GetByUser), new { userId = notification.UserId }, ToResponse(notification));
     }
@@ -212,7 +247,7 @@ public class NotificationsController : ControllerBase
                 continue;
             }
 
-            _dbContext.Notifications.Add(new Notification
+            var notification = new Notification
             {
                 UserId = user.Id,
                 Title = "Reminder",
@@ -220,11 +255,23 @@ public class NotificationsController : ControllerBase
                 Type = NotificationTypes.Reminder,
                 Source = NotificationSources.HealthRecord,
                 CreatedAt = now
-            });
+            };
+
+            _dbContext.Notifications.Add(notification);
             createdCount++;
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var reminders = await _dbContext.Notifications
+            .AsNoTracking()
+            .Where(notification => notification.CreatedAt == now && notification.Title == "Reminder")
+            .ToListAsync(cancellationToken);
+
+        foreach (var notification in reminders)
+        {
+            await _realtimeNotificationService.SendNotificationAsync(notification, cancellationToken);
+        }
 
         return Ok(new
         {
@@ -276,7 +323,7 @@ public class NotificationsController : ControllerBase
     {
         if (!NotificationSources.All.Contains(source))
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Notification source must be Prediction, System, Profile, or HealthRecord.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Notification source must be Prediction, System, Profile, HealthRecord, or Report.");
         }
     }
 
@@ -310,6 +357,11 @@ public class NotificationsController : ControllerBase
         if (source.Equals(NotificationSources.HealthRecord, StringComparison.OrdinalIgnoreCase))
         {
             return NotificationSources.HealthRecord;
+        }
+
+        if (source.Equals(NotificationSources.Report, StringComparison.OrdinalIgnoreCase))
+        {
+            return NotificationSources.Report;
         }
 
         return NotificationSources.System;

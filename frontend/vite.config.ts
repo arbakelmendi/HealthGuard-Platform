@@ -14,6 +14,12 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         secure: false,
       },
+      "/hubs": {
+        target: apiProxyTarget,
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
     },
   },
   resolve: {

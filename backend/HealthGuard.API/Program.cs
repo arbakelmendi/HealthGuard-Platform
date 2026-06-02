@@ -1,5 +1,6 @@
 using System.Text;
 using HealthGuard.API.Data;
+using HealthGuard.API.Hubs;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Options;
 using HealthGuard.API.Seed;
@@ -16,7 +17,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.Sources.Clear();
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
 
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
@@ -37,6 +39,7 @@ builder.Services.AddControllers()
         };
     });
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSignalR();
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
@@ -75,6 +78,21 @@ builder.Services
             IssuerSigningKey = signingKey,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/notifications"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -82,10 +100,14 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IRealtimeNotificationService, RealtimeNotificationService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IDatasetService, DatasetService>();
 builder.Services.AddScoped<HealthRiskPredictionService>();
 builder.Services.AddHttpClient<MachineLearningPredictionService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:8000");
+    var mlBaseUrl = builder.Configuration["ML_API_BASE_URL"] ?? builder.Configuration["MlApi:BaseUrl"] ?? "http://localhost:8000";
+    client.BaseAddress = new Uri(mlBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(5);
 });
 builder.Services.AddScoped<AdminSeeder>();
@@ -94,10 +116,16 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("HealthGuardFrontend", policy =>
     {
+        var origins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>()
+            ?? new[] { "http://localhost:5173", "https://localhost:5173", "http://localhost:8080" };
+
         policy
-            .WithOrigins("http://localhost:5173", "https://localhost:5173", "http://localhost:8080")
+            .WithOrigins(origins)
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -156,5 +184,6 @@ app.UseCors("HealthGuardFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<NotificationsHub>("/hubs/notifications");
 
 app.Run();

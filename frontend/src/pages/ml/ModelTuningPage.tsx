@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { tuningHistoryData, mlModelsData, datasetsData } from "@/lib/mockData";
+import { tuningHistoryData, datasetsData } from "@/lib/mockData";
 import { SlidersHorizontal, Play, Save, TrendingUp, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -60,7 +60,6 @@ export default function ModelTuningPage() {
                     <SelectItem value="random-forest">Random Forest</SelectItem>
                     <SelectItem value="neural-network">Neural Network</SelectItem>
                     <SelectItem value="logistic-regression">Logistic Regression</SelectItem>
-                    <SelectItem value="xgboost">XGBoost Regressor</SelectItem>
                     <SelectItem value="knn">K-Nearest Neighbors</SelectItem>
                   </SelectContent>
                 </Select>
@@ -83,7 +82,6 @@ export default function ModelTuningPage() {
                   <SelectContent>
                     <SelectItem value="risk-level">Risk Level</SelectItem>
                     <SelectItem value="risk-score">Risk Score</SelectItem>
-                    <SelectItem value="blood-pressure">Blood Pressure</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

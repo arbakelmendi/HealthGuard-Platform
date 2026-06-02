@@ -1,0 +1,256 @@
+{
+  "classification": [
+    {
+      "rank": 1,
+      "modelName": "Logistic Regression",
+      "modelType": "Classification",
+      "datasetName": "Heart Disease Dataset (heart.csv)",
+      "accuracy": 0.8097560975609757,
+      "precision": 0.7619047619047619,
+      "recall": 0.9142857142857143,
+      "f1Score": 0.8311688311688312,
+      "confusionMatrix": [
+        [
+          70,
+          30
+        ],
+        [
+          9,
+          96
+        ]
+      ],
+      "bestHyperparameters": {
+        "C": 1,
+        "solver": "liblinear"
+      },
+      "selectedFeatures": null,
+      "architecture": null,
+      "trainingDate": "2026-06-02",
+      "status": "Evaluated"
+    },
+    {
+      "rank": 2,
+      "modelName": "Decision Tree",
+      "modelType": "Classification",
+      "datasetName": "Heart Disease Dataset (heart.csv)",
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1Score": 1.0,
+      "confusionMatrix": [
+        [
+          100,
+          0
+        ],
+        [
+          0,
+          105
+        ]
+      ],
+      "bestHyperparameters": {
+        "criterion": "entropy",
+        "max_depth": null
+      },
+      "selectedFeatures": null,
+      "architecture": null,
+      "trainingDate": "2026-06-02",
+      "status": "Evaluated"
+    },
+    {
+      "rank": 3,
+      "modelName": "KNN",
+      "modelType": "Classification",
+      "datasetName": "Heart Disease Dataset (heart.csv)",
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1Score": 1.0,
+      "confusionMatrix": [
+        [
+          100,
+          0
+        ],
+        [
+          0,
+          105
+        ]
+      ],
+      "bestHyperparameters": {
+        "n_neighbors": 9,
+        "weights": "distance"
+      },
+      "selectedFeatures": null,
+      "architecture": null,
+      "trainingDate": "2026-06-02",
+      "status": "Evaluated"
+    },
+    {
+      "rank": 4,
+      "modelName": "Random Forest",
+      "modelType": "Classification",
+      "datasetName": "Heart Disease Dataset (heart.csv)",
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1Score": 1.0,
+      "confusionMatrix": [
+        [
+          100,
+          0
+        ],
+        [
+          0,
+          105
+        ]
+      ],
+      "bestHyperparameters": {
+        "max_depth": null,
+        "n_estimators": 100
+      },
+      "selectedFeatures": null,
+      "architecture": null,
+      "trainingDate": "2026-06-02",
+      "status": "Evaluated"
+    },
+    {
+      "rank": 5,
+      "modelName": "Random Forest with Feature Selection",
+      "modelType": "Classification",
+      "datasetName": "Heart Disease Dataset (heart.csv)",
+      "accuracy": 0.926829268292683,
+      "precision": 0.9166666666666666,
+      "recall": 0.9428571428571428,
+      "f1Score": 0.9295774647887324,
+      "confusionMatrix": [
+        [
+          91,
+          9
+        ],
+        [
+          6,
+          99
+        ]
+      ],
+      "bestHyperparameters": null,
+      "selectedFeatures": [
+        "sex",
+        "cp",
+        "thalach",
+        "exang",
+        "oldpeak",
+        "slope",
+        "ca",
+        "thal"
+      ],
+      "architecture": null,
+      "trainingDate": "2026-06-02",
+      "status": "Evaluated"
+    },
+    {
+      "rank": 6,
+      "modelName": "Neural Network Architecture 1",
+      "modelType": "Classification",
+      "datasetName": "Heart Disease Dataset (heart.csv)",
+      "accuracy": 0.8536585365853658,
+      "precision": 0.8440366972477065,
+      "recall": 0.8761904761904762,
+      "f1Score": 0.8598130841121495,
+      "confusionMatrix": [
+        [
+          83,
+          17
+        ],
+        [
+          13,
+          92
+        ]
+      ],
+      "bestHyperparameters": null,
+      "selectedFeatures": null,
+      "architecture": "16 neurons -> 8 neurons -> output",
+      "trainingDate": "2026-06-02",
+      "status": "Evaluated"
+    },
+    {
+      "rank": 7,
+      "modelName": "Neural Network Architecture 2",
+      "modelType": "Classification",
+      "datasetName": "Heart Disease Dataset (heart.csv)",
+      "accuracy": 0.9317073170731708,
+      "precision": 0.9174311926605505,
+      "recall": 0.9523809523809523,
+      "f1Score": 0.9345794392523364,
+      "confusionMatrix": [
+        [
+          91,
+          9
+        ],
+        [
+          5,
+          100
+        ]
+      ],
+      "bestHyperparameters": null,
+      "selectedFeatures": null,
+      "architecture": "32 neurons + Dropout -> 16 neurons -> 8 neurons -> output",
+      "trainingDate": "2026-06-02",
+      "status": "Evaluated"
+    }
+  ],
+  "regression": [],
+  "clustering": [
+    {
+      "rank": 1,
+      "modelName": "K-Means Clustering",
+      "modelType": "Clustering",
+      "datasetName": "Heart Disease Dataset (heart.csv)",
+      "numberOfClusters": 2,
+      "silhouetteScore": 0.42,
+      "clusterClassMatchScore": 0.68,
+      "trainingDate": "2026-06-02",
+      "status": "Evaluated"
+    }
+  ],
+  "featureImportance": [
+    {
+      "feature": "cp",
+      "importance": 0.14209364853158
+    },
+    {
+      "feature": "thalach",
+      "importance": 0.11734909608815305
+    },
+    {
+      "feature": "ca",
+      "importance": 0.11484385505094039
+    },
+    {
+      "feature": "oldpeak",
+      "importance": 0.1126341184996618
+    },
+    {
+      "feature": "thal",
+      "importance": 0.09593006771128118
+    },
+    {
+      "feature": "age",
+      "importance": 0.09128535432752492
+    },
+    {
+      "feature": "chol",
+      "importance": 0.07777130121212933
+    },
+    {
+      "feature": "exang",
+      "importance": 0.07370722649816709
+    },
+    {
+      "feature": "trestbps",
+      "importance": 0.06776455391247477
+    },
+    {
+      "feature": "slope",
+      "importance": 0.048710710233078706
+    }
+  ]
+}

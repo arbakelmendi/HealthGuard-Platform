@@ -31,13 +31,39 @@ public class SymptomsController : ControllerBase
     }
 
     [HttpGet("me")]
-    public async Task<ActionResult<IReadOnlyList<SymptomLogDto>>> GetMine(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<SymptomLogDto>>> GetMine(
+        [FromQuery] string? search,
+        [FromQuery] string? severity,
+        [FromQuery] string sortBy = "createdAt",
+        [FromQuery] string sortDirection = "desc",
+        CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var symptoms = await _dbContext.SymptomLogs
+        var query = _dbContext.SymptomLogs
             .AsNoTracking()
-            .Where(symptom => symptom.UserId == userId)
-            .OrderByDescending(symptom => symptom.CreatedAt)
+            .Where(symptom => symptom.UserId == userId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(symptom => symptom.Symptom.Contains(term) || symptom.Duration.Contains(term) || (symptom.Notes != null && symptom.Notes.Contains(term)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(severity))
+        {
+            query = query.Where(symptom => symptom.Severity == severity);
+        }
+
+        var descending = !sortDirection.Equals("asc", StringComparison.OrdinalIgnoreCase);
+        query = sortBy.ToLowerInvariant() switch
+        {
+            "symptom" => descending ? query.OrderByDescending(item => item.Symptom) : query.OrderBy(item => item.Symptom),
+            "severity" => descending ? query.OrderByDescending(item => item.Severity) : query.OrderBy(item => item.Severity),
+            "duration" => descending ? query.OrderByDescending(item => item.Duration) : query.OrderBy(item => item.Duration),
+            _ => descending ? query.OrderByDescending(item => item.CreatedAt) : query.OrderBy(item => item.CreatedAt)
+        };
+
+        var symptoms = await query
             .Select(symptom => ToResponse(symptom))
             .ToListAsync(cancellationToken);
 

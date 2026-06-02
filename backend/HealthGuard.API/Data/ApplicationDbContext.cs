@@ -21,6 +21,48 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<SymptomLog> SymptomLogs => Set<SymptomLog>();
 
+    public DbSet<Role> Roles => Set<Role>();
+
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+
+    public DbSet<Permission> Permissions => Set<Permission>();
+
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+    public DbSet<AppSetting> Settings => Set<AppSetting>();
+
+    public DbSet<StoredFile> Files => Set<StoredFile>();
+
+    public DbSet<PatientProfile> PatientProfiles => Set<PatientProfile>();
+
+    public DbSet<MedicalCondition> MedicalConditions => Set<MedicalCondition>();
+
+    public DbSet<UserMedicalCondition> UserMedicalConditions => Set<UserMedicalCondition>();
+
+    public DbSet<Medication> Medications => Set<Medication>();
+
+    public DbSet<Allergy> Allergies => Set<Allergy>();
+
+    public DbSet<Appointment> Appointments => Set<Appointment>();
+
+    public DbSet<Recommendation> Recommendations => Set<Recommendation>();
+
+    public DbSet<ReportDefinition> ReportDefinitions => Set<ReportDefinition>();
+
+    public DbSet<GeneratedReport> GeneratedReports => Set<GeneratedReport>();
+
+    public DbSet<ReportExport> ReportExports => Set<ReportExport>();
+
+    public DbSet<ImportBatch> ImportBatches => Set<ImportBatch>();
+
+    public DbSet<DataExportJob> DataExportJobs => Set<DataExportJob>();
+
+    public DbSet<MlDataset> MlDatasets => Set<MlDataset>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -279,6 +321,176 @@ public class ApplicationDbContext : DbContext
                 })
                 .IsUnique()
                 .HasFilter("[PredictionResultId] IS NOT NULL");
+        });
+
+        ConfigureSecurity(modelBuilder);
+        ConfigureAdditionalDomain(modelBuilder);
+        ConfigureAuditColumns(modelBuilder);
+    }
+
+    private static void ConfigureAuditColumns(ModelBuilder modelBuilder)
+    {
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes()
+            .Where(entityType => typeof(AuditableEntity).IsAssignableFrom(entityType.ClrType)))
+        {
+            var entity = modelBuilder.Entity(entityType.ClrType);
+            entity.Property(nameof(AuditableEntity.CreatedAt)).IsRequired();
+            entity.Property(nameof(AuditableEntity.UpdatedAt)).IsRequired();
+            entity.HasOne(typeof(User), nameof(AuditableEntity.CreatedByUser))
+                .WithMany()
+                .HasForeignKey(nameof(AuditableEntity.CreatedBy))
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(typeof(User), nameof(AuditableEntity.UpdatedByUser))
+                .WithMany()
+                .HasForeignKey(nameof(AuditableEntity.UpdatedBy))
+                .OnDelete(DeleteBehavior.NoAction);
+        }
+    }
+
+    private static void ConfigureSecurity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.HasIndex(role => role.Name).IsUnique();
+            entity.Property(role => role.Name).IsRequired().HasMaxLength(50);
+            entity.Property(role => role.Description).HasMaxLength(250);
+        });
+
+        modelBuilder.Entity<UserRole>(entity =>
+        {
+            entity.HasKey(userRole => new { userRole.UserId, userRole.RoleId });
+            entity.HasOne(userRole => userRole.User)
+                .WithMany(user => user.UserRoles)
+                .HasForeignKey(userRole => userRole.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(userRole => userRole.Role)
+                .WithMany(role => role.UserRoles)
+                .HasForeignKey(userRole => userRole.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Permission>(entity =>
+        {
+            entity.HasIndex(permission => permission.Name).IsUnique();
+            entity.Property(permission => permission.Name).IsRequired().HasMaxLength(100);
+            entity.Property(permission => permission.Description).HasMaxLength(250);
+        });
+
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.HasKey(rolePermission => new { rolePermission.RoleId, rolePermission.PermissionId });
+            entity.HasOne(rolePermission => rolePermission.Role)
+                .WithMany(role => role.RolePermissions)
+                .HasForeignKey(rolePermission => rolePermission.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(rolePermission => rolePermission.Permission)
+                .WithMany(permission => permission.RolePermissions)
+                .HasForeignKey(rolePermission => rolePermission.PermissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasIndex(token => token.TokenHash).IsUnique();
+            entity.Property(token => token.TokenHash).IsRequired().HasMaxLength(256);
+            entity.HasOne(token => token.User)
+                .WithMany(user => user.RefreshTokens)
+                .HasForeignKey(token => token.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.Property(log => log.Action).IsRequired().HasMaxLength(80);
+            entity.Property(log => log.EntityName).IsRequired().HasMaxLength(120);
+            entity.HasOne(log => log.User)
+                .WithMany()
+                .HasForeignKey(log => log.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(log => new { log.EntityName, log.EntityId, log.CreatedAt });
+        });
+
+        modelBuilder.Entity<AppSetting>(entity =>
+        {
+            entity.ToTable("Settings");
+            entity.HasIndex(setting => setting.Key).IsUnique();
+            entity.Property(setting => setting.Key).IsRequired().HasMaxLength(100);
+            entity.Property(setting => setting.Value).IsRequired().HasMaxLength(2000);
+        });
+
+        modelBuilder.Entity<StoredFile>(entity =>
+        {
+            entity.ToTable("Files");
+            entity.Property(file => file.FileName).IsRequired().HasMaxLength(255);
+            entity.Property(file => file.ContentType).IsRequired().HasMaxLength(120);
+            entity.Property(file => file.StoragePath).IsRequired().HasMaxLength(500);
+            entity.HasOne(file => file.User)
+                .WithMany()
+                .HasForeignKey(file => file.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+    }
+
+    private static void ConfigureAdditionalDomain(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PatientProfile>(entity =>
+        {
+            entity.HasIndex(profile => profile.UserId).IsUnique();
+            entity.HasOne(profile => profile.User)
+                .WithMany(user => user.PatientProfiles)
+                .HasForeignKey(profile => profile.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MedicalCondition>(entity =>
+        {
+            entity.HasIndex(condition => condition.Name).IsUnique();
+            entity.Property(condition => condition.Name).IsRequired().HasMaxLength(150);
+        });
+
+        modelBuilder.Entity<UserMedicalCondition>(entity =>
+        {
+            entity.HasKey(condition => new { condition.UserId, condition.MedicalConditionId });
+            entity.HasOne(condition => condition.User)
+                .WithMany(user => user.UserMedicalConditions)
+                .HasForeignKey(condition => condition.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(condition => condition.MedicalCondition)
+                .WithMany(condition => condition.UserMedicalConditions)
+                .HasForeignKey(condition => condition.MedicalConditionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Medication>().HasOne(item => item.User).WithMany(user => user.Medications).HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Allergy>().HasOne(item => item.User).WithMany(user => user.AllergiesList).HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Appointment>().HasOne(item => item.User).WithMany(user => user.Appointments).HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Recommendation>().HasOne(item => item.User).WithMany(user => user.Recommendations).HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Recommendation>().HasOne(item => item.PredictionResult).WithMany().HasForeignKey(item => item.PredictionResultId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<GeneratedReport>().HasOne(item => item.User).WithMany(user => user.GeneratedReports).HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<GeneratedReport>().HasOne(item => item.ReportDefinition).WithMany(item => item.GeneratedReports).HasForeignKey(item => item.ReportDefinitionId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<ReportExport>().HasOne(item => item.GeneratedReport).WithMany(item => item.ReportExports).HasForeignKey(item => item.GeneratedReportId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ReportExport>().HasOne(item => item.File).WithMany().HasForeignKey(item => item.FileId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<ImportBatch>().HasOne(item => item.User).WithMany(user => user.ImportBatches).HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ImportBatch>().HasOne(item => item.File).WithMany().HasForeignKey(item => item.FileId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<DataExportJob>().HasOne(item => item.User).WithMany(user => user.DataExportJobs).HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<DataExportJob>().HasOne(item => item.File).WithMany().HasForeignKey(item => item.FileId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<MlDataset>(entity =>
+        {
+            entity.HasIndex(item => item.Name);
+            entity.Property(item => item.Name).IsRequired().HasMaxLength(150);
+            entity.Property(item => item.Type).IsRequired().HasMaxLength(30);
+            entity.Property(item => item.Source).IsRequired().HasMaxLength(150);
+            entity.Property(item => item.FileName).IsRequired().HasMaxLength(255);
+            entity.Property(item => item.FilePath).IsRequired().HasMaxLength(500);
+            entity.Property(item => item.Status).IsRequired().HasMaxLength(30);
+            entity.HasOne(item => item.UploadedByUser)
+                .WithMany()
+                .HasForeignKey(item => item.UploadedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(item => item.File)
+                .WithMany()
+                .HasForeignKey(item => item.FileId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

@@ -22,9 +22,15 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<UserResponseDto>>> GetUsers([FromQuery] string? search, CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<UserResponseDto>>> GetUsers(
+        [FromQuery] string? search,
+        [FromQuery] string? role,
+        [FromQuery] bool? isActive,
+        [FromQuery] string sortBy = "name",
+        [FromQuery] string sortDirection = "asc",
+        CancellationToken cancellationToken = default)
     {
-        return Ok(await _userService.GetAllAsync(search, cancellationToken));
+        return Ok(await _userService.GetAllAsync(search, role, isActive, sortBy, sortDirection, cancellationToken));
     }
 
     [HttpGet("{id:int}")]

@@ -4,6 +4,8 @@ using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
 using HealthGuard.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace HealthGuard.API.Services.Implementations;
 
@@ -49,7 +51,7 @@ public class AuthService : IAuthService
         _dbContext.Users.Add(user);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return CreateAuthResponse(user);
+        return await CreateAuthResponseAsync(user, cancellationToken);
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken)
@@ -67,7 +69,44 @@ public class AuthService : IAuthService
             throw new ApiException(StatusCodes.Status401Unauthorized, "This account is inactive.");
         }
 
-        return CreateAuthResponse(user);
+        return await CreateAuthResponseAsync(user, cancellationToken);
+    }
+
+    public async Task<AuthResponseDto> RefreshAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken)
+    {
+        var tokenHash = HashRefreshToken(request.RefreshToken);
+        var refreshToken = await _dbContext.RefreshTokens
+            .Include(token => token.User)
+            .FirstOrDefaultAsync(token => token.TokenHash == tokenHash, cancellationToken);
+
+        if (refreshToken is null || !refreshToken.IsActive || !refreshToken.User.IsActive)
+        {
+            throw new ApiException(StatusCodes.Status401Unauthorized, "Invalid refresh token.");
+        }
+
+        refreshToken.RevokedAt = DateTime.UtcNow;
+
+        var response = await CreateAuthResponseAsync(refreshToken.User, cancellationToken);
+        refreshToken.ReplacedByTokenHash = HashRefreshToken(response.RefreshToken);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return response;
+    }
+
+    public async Task RevokeRefreshTokenAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken)
+    {
+        var tokenHash = HashRefreshToken(request.RefreshToken);
+        var refreshToken = await _dbContext.RefreshTokens
+            .FirstOrDefaultAsync(token => token.TokenHash == tokenHash, cancellationToken);
+
+        if (refreshToken is null)
+        {
+            return;
+        }
+
+        refreshToken.RevokedAt = DateTime.UtcNow;
+        refreshToken.UpdatedAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task ChangePasswordAsync(int userId, ChangePasswordDto request, CancellationToken cancellationToken)
@@ -89,14 +128,31 @@ public class AuthService : IAuthService
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private AuthResponseDto CreateAuthResponse(User user)
+    private async Task<AuthResponseDto> CreateAuthResponseAsync(User user, CancellationToken cancellationToken)
     {
         var token = _jwtTokenService.GenerateToken(user);
+        var refreshToken = CreateRefreshToken();
+        var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(14);
+
+        _dbContext.RefreshTokens.Add(new RefreshToken
+        {
+            UserId = user.Id,
+            TokenHash = HashRefreshToken(refreshToken),
+            ExpiresAt = refreshTokenExpiresAt,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            CreatedBy = user.Id,
+            UpdatedBy = user.Id
+        });
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return new AuthResponseDto
         {
             Token = token.Token,
+            RefreshToken = refreshToken,
             ExpiresAt = token.ExpiresAt,
+            RefreshTokenExpiresAt = refreshTokenExpiresAt,
             User = UserMapper.ToResponse(user)
         };
     }
@@ -116,4 +172,16 @@ public class AuthService : IAuthService
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
     private static string? TrimOrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string CreateRefreshToken()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(64);
+        return Convert.ToBase64String(bytes);
+    }
+
+    private static string HashRefreshToken(string refreshToken)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
+        return Convert.ToHexString(bytes);
+    }
 }

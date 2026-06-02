@@ -22,13 +22,15 @@ public static class NotificationSources
     public const string System = "System";
     public const string Profile = "Profile";
     public const string HealthRecord = "HealthRecord";
+    public const string Report = "Report";
 
     public static readonly HashSet<string> All = new(StringComparer.OrdinalIgnoreCase)
     {
         Prediction,
         System,
         Profile,
-        HealthRecord
+        HealthRecord,
+        Report
     };
 }
 

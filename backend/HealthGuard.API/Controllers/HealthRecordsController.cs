@@ -3,6 +3,7 @@ using HealthGuard.API.Data;
 using HealthGuard.API.DTOs.HealthRecords;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
+using HealthGuard.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,10 +16,12 @@ namespace HealthGuard.API.Controllers;
 public class HealthRecordsController : ControllerBase
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly IRealtimeNotificationService _realtimeNotificationService;
 
-    public HealthRecordsController(ApplicationDbContext dbContext)
+    public HealthRecordsController(ApplicationDbContext dbContext, IRealtimeNotificationService realtimeNotificationService)
     {
         _dbContext = dbContext;
+        _realtimeNotificationService = realtimeNotificationService;
     }
 
     [HttpGet]
@@ -73,6 +76,7 @@ public class HealthRecordsController : ControllerBase
 
         var latestRecord = await _dbContext.HealthRecords
             .AsNoTracking()
+            .Include(record => record.User)
             .Where(record => record.UserId == userId)
             .OrderByDescending(record => record.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
@@ -109,14 +113,30 @@ public class HealthRecordsController : ControllerBase
     [HttpGet("user/{userId:int}")]
     public async Task<ActionResult<IReadOnlyList<HealthRecordResponseDto>>> GetForUser(
         int userId,
-        CancellationToken cancellationToken)
+        [FromQuery] string? search,
+        [FromQuery] string sortBy = "createdAt",
+        [FromQuery] string sortDirection = "desc",
+        CancellationToken cancellationToken = default)
     {
         EnsureCanAccessUser(userId);
 
-        var records = await _dbContext.HealthRecords
+        var query = _dbContext.HealthRecords
             .AsNoTracking()
-            .Where(record => record.UserId == userId)
-            .OrderByDescending(record => record.CreatedAt)
+            .Include(record => record.User)
+            .Where(record => record.UserId == userId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(record =>
+                record.Gender.Contains(term)
+                || record.ActivityLevel.Contains(term)
+                || record.SmokingStatus.Contains(term)
+                || record.Symptoms.Contains(term)
+                || record.BloodPressure.Contains(term));
+        }
+
+        var records = await ApplyHealthRecordSort(query, sortBy, sortDirection)
             .Select(record => ToResponse(record))
             .ToListAsync(cancellationToken);
 
@@ -388,6 +408,8 @@ public class HealthRecordsController : ControllerBase
         {
             Id = record.Id,
             UserId = record.UserId,
+            UserName = record.User?.FullName ?? string.Empty,
+            UserEmail = record.User?.Email ?? string.Empty,
             Age = record.Age,
             Gender = record.Gender,
             Weight = record.Weight,
@@ -441,6 +463,22 @@ public class HealthRecordsController : ControllerBase
         return "same";
     }
 
+    private static IQueryable<HealthRecord> ApplyHealthRecordSort(
+        IQueryable<HealthRecord> query,
+        string sortBy,
+        string sortDirection)
+    {
+        var descending = !sortDirection.Equals("asc", StringComparison.OrdinalIgnoreCase);
+        return sortBy.ToLowerInvariant() switch
+        {
+            "bmi" => descending ? query.OrderByDescending(item => item.Bmi) : query.OrderBy(item => item.Bmi),
+            "bloodsugar" or "glucose" => descending ? query.OrderByDescending(item => item.BloodSugar) : query.OrderBy(item => item.BloodSugar),
+            "cholesterol" => descending ? query.OrderByDescending(item => item.Cholesterol) : query.OrderBy(item => item.Cholesterol),
+            "heartrate" => descending ? query.OrderByDescending(item => item.HeartRate) : query.OrderBy(item => item.HeartRate),
+            _ => descending ? query.OrderByDescending(item => item.CreatedAt) : query.OrderBy(item => item.CreatedAt)
+        };
+    }
+
     private async Task CreateHealthRecordUpdatedNotificationAsync(
         int userId,
         CancellationToken cancellationToken)
@@ -462,7 +500,7 @@ public class HealthRecordsController : ControllerBase
             return;
         }
 
-        _dbContext.Notifications.Add(new Notification
+        var notification = new Notification
         {
             UserId = userId,
             Title = "Health Record Updated",
@@ -470,8 +508,10 @@ public class HealthRecordsController : ControllerBase
             Type = NotificationTypes.Info,
             Source = NotificationSources.HealthRecord,
             CreatedAt = now
-        });
+        };
 
+        _dbContext.Notifications.Add(notification);
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await _realtimeNotificationService.SendNotificationAsync(notification, cancellationToken);
     }
 }

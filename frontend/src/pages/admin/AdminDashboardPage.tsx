@@ -53,6 +53,12 @@ export default function AdminDashboardPage() {
   const latestUsers = useMemo(() => [...users].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 5), [users]);
   const latestPredictions = useMemo(() => [...predictions].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 5), [predictions]);
   const latestRecords = useMemo(() => [...healthRecords].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 5), [healthRecords]);
+  const getHealthRecordUserLabel = (record: HealthRecordResponse) => {
+    const name = record.userName?.trim();
+    if (name) return name;
+    if (record.userEmail) return record.userEmail;
+    return `User #${record.userId}`;
+  };
 
   const stats = [
     { label: "Total Users", value: users.length, icon: Users, tone: "text-cyan-300" },
@@ -127,7 +133,7 @@ export default function AdminDashboardPage() {
                 empty="No health records yet."
                 items={latestRecords.map((record) => ({
                   id: record.id,
-                  title: `User #${record.userId}`,
+                  title: getHealthRecordUserLabel(record),
                   meta: `BMI ${Number(record.bmi).toFixed(1)} · ${new Date(record.createdAt).toLocaleDateString()}`,
                 }))}
               />

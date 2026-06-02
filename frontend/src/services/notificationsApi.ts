@@ -1,7 +1,7 @@
 import api from "@/lib/api";
 
 export type NotificationType = "Alert" | "Reminder" | "Info";
-export type NotificationSource = "Prediction" | "System" | "Profile" | "HealthRecord";
+export type NotificationSource = "Prediction" | "System" | "Profile" | "HealthRecord" | "Report";
 
 export interface NotificationResponse {
   id: number;

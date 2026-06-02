@@ -40,6 +40,9 @@ const mapUser = (user: AuthResponse["user"]): AuthUser => ({
 
 const mapSession = (response: AuthResponse): AuthSession => ({
   token: response.token,
+  refreshToken: response.refreshToken,
+  expiresAt: response.expiresAt,
+  refreshTokenExpiresAt: response.refreshTokenExpiresAt,
   user: mapUser(response.user),
 });
 
@@ -70,7 +73,11 @@ export const authService = {
     return session;
   },
 
-  logout() {
+  async logout() {
+    const refreshToken = authStorage.getSession()?.refreshToken;
+    if (refreshToken) {
+      await authApi.logout(refreshToken).catch(() => undefined);
+    }
     authStorage.clearSession();
   },
 
