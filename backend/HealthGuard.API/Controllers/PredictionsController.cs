@@ -6,6 +6,7 @@ using HealthGuard.API.DTOs.Predictions;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
 using HealthGuard.API.Services.Implementations;
+using HealthGuard.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,15 +21,18 @@ public class PredictionsController : ControllerBase
     private readonly ApplicationDbContext _dbContext;
     private readonly HealthRiskPredictionService _predictionService;
     private readonly MachineLearningPredictionService _machineLearningPredictionService;
+    private readonly IRealtimeNotificationService _realtimeNotificationService;
 
     public PredictionsController(
         ApplicationDbContext dbContext,
         HealthRiskPredictionService predictionService,
-        MachineLearningPredictionService machineLearningPredictionService)
+        MachineLearningPredictionService machineLearningPredictionService,
+        IRealtimeNotificationService realtimeNotificationService)
     {
         _dbContext = dbContext;
         _predictionService = predictionService;
         _machineLearningPredictionService = machineLearningPredictionService;
+        _realtimeNotificationService = realtimeNotificationService;
     }
 
     [HttpPost("predict")]
@@ -115,15 +119,33 @@ public class PredictionsController : ControllerBase
     [HttpGet("user/{userId:int}")]
     public async Task<ActionResult<IReadOnlyList<PredictHealthRiskResponse>>> GetByUser(
         int userId,
-        CancellationToken cancellationToken)
+        [FromQuery] string? riskLevel,
+        [FromQuery] string? search,
+        [FromQuery] string sortBy = "createdAt",
+        [FromQuery] string sortDirection = "desc",
+        CancellationToken cancellationToken = default)
     {
         EnsureCanAccessUser(userId);
 
-        var predictions = await _dbContext.PredictionResults
+        var query = _dbContext.PredictionResults
             .AsNoTracking()
             .Include(prediction => prediction.HealthRecord)
-            .Where(prediction => prediction.UserId == userId)
-            .OrderByDescending(prediction => prediction.CreatedAt)
+            .Where(prediction => prediction.UserId == userId);
+
+        if (!string.IsNullOrWhiteSpace(riskLevel))
+        {
+            query = query.Where(prediction => prediction.RiskLevel == riskLevel);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(prediction => prediction.Explanation.Contains(term) || prediction.ModelName.Contains(term));
+        }
+
+        query = ApplyPredictionSort(query, sortBy, sortDirection);
+
+        var predictions = await query
             .ToListAsync(cancellationToken);
 
         return Ok(predictions.Select(ToResponse).ToList());
@@ -152,13 +174,34 @@ public class PredictionsController : ControllerBase
     [HttpGet("admin/all")]
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult<IReadOnlyList<AdminPredictionRecordResponse>>> GetAll(
-        CancellationToken cancellationToken)
+        [FromQuery] string? search,
+        [FromQuery] string? riskLevel,
+        [FromQuery] string sortBy = "createdAt",
+        [FromQuery] string sortDirection = "desc",
+        CancellationToken cancellationToken = default)
     {
-        var predictions = await _dbContext.PredictionResults
+        IQueryable<PredictionResult> query = _dbContext.PredictionResults
             .AsNoTracking()
             .Include(prediction => prediction.User)
-            .Include(prediction => prediction.HealthRecord)
-            .OrderByDescending(prediction => prediction.CreatedAt)
+            .Include(prediction => prediction.HealthRecord);
+
+        if (!string.IsNullOrWhiteSpace(riskLevel))
+        {
+            query = query.Where(prediction => prediction.RiskLevel == riskLevel);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(prediction =>
+                prediction.Explanation.Contains(term)
+                || prediction.ModelName.Contains(term)
+                || prediction.User.Email.Contains(term)
+                || prediction.User.FirstName.Contains(term)
+                || prediction.User.LastName.Contains(term));
+        }
+
+        var predictions = await ApplyPredictionSort(query, sortBy, sortDirection)
             .ToListAsync(cancellationToken);
 
         var response = predictions
@@ -342,6 +385,21 @@ public class PredictionsController : ControllerBase
         }
     }
 
+    private static IQueryable<PredictionResult> ApplyPredictionSort(
+        IQueryable<PredictionResult> query,
+        string sortBy,
+        string sortDirection)
+    {
+        var descending = !sortDirection.Equals("asc", StringComparison.OrdinalIgnoreCase);
+        return sortBy.ToLowerInvariant() switch
+        {
+            "risklevel" => descending ? query.OrderByDescending(item => item.RiskLevel) : query.OrderBy(item => item.RiskLevel),
+            "riskscore" => descending ? query.OrderByDescending(item => item.RiskScore) : query.OrderBy(item => item.RiskScore),
+            "modelname" => descending ? query.OrderByDescending(item => item.ModelName) : query.OrderBy(item => item.ModelName),
+            _ => descending ? query.OrderByDescending(item => item.CreatedAt) : query.OrderBy(item => item.CreatedAt)
+        };
+    }
+
     private async Task CreatePredictionNotificationsAsync(
         PredictionResult prediction,
         CancellationToken cancellationToken)
@@ -408,5 +466,6 @@ public class PredictionsController : ControllerBase
 
         _dbContext.Notifications.Add(notification);
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await _realtimeNotificationService.SendNotificationAsync(notification, cancellationToken);
     }
 }

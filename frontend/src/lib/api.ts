@@ -1,9 +1,12 @@
 import axios from "axios";
 import { authStorage } from "@/lib/auth-storage";
+import type { AuthResponse } from "@/types/auth";
 
 const api = axios.create({
   baseURL: "/api",
 });
+
+let refreshPromise: Promise<string | null> | null = null;
 
 api.interceptors.request.use((config) => {
   const token = authStorage.getSession()?.token;
@@ -17,8 +20,38 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     console.error("API ERROR:", error?.response?.data || error?.message);
+
+    const originalRequest = error.config;
+    const session = authStorage.getSession();
+
+    if (error.response?.status === 401 && session?.refreshToken && !originalRequest?._retry) {
+      originalRequest._retry = true;
+
+      refreshPromise ??= axios
+        .post<AuthResponse>("/api/auth/refresh", { refreshToken: session.refreshToken })
+        .then((response) => {
+          authStorage.setSession({
+            ...session,
+            token: response.data.token,
+            refreshToken: response.data.refreshToken,
+            expiresAt: response.data.expiresAt,
+            refreshTokenExpiresAt: response.data.refreshTokenExpiresAt,
+          });
+          return response.data.token;
+        })
+        .catch(() => null)
+        .finally(() => {
+          refreshPromise = null;
+        });
+
+      const nextToken = await refreshPromise;
+      if (nextToken) {
+        originalRequest.headers.Authorization = `Bearer ${nextToken}`;
+        return api(originalRequest);
+      }
+    }
 
     if (error.response?.status === 401) {
       authStorage.clearSession();
@@ -76,6 +109,8 @@ export type HealthRecordPayload = {
 export type HealthRecordResponse = HealthRecordPayload & {
   id: number;
   userId: number;
+  userName?: string;
+  userEmail?: string;
   bmi: number;
   createdAt: string;
 };

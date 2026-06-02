@@ -5,7 +5,7 @@ namespace HealthGuard.API.Services.Interfaces;
 
 public interface IUserService
 {
-    Task<IReadOnlyList<UserResponseDto>> GetAllAsync(string? search, CancellationToken cancellationToken);
+    Task<IReadOnlyList<UserResponseDto>> GetAllAsync(string? search, string? role, bool? isActive, string sortBy, string sortDirection, CancellationToken cancellationToken);
     Task<UserResponseDto> GetByIdAsync(int id, CancellationToken cancellationToken);
     Task<UserResponseDto> CreateAsync(CreateUserDto request, CancellationToken cancellationToken);
     Task<UserResponseDto> UpdateAsync(int id, UpdateUserDto request, CancellationToken cancellationToken);

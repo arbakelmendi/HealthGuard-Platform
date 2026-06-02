@@ -18,7 +18,13 @@ public class UserService : IUserService
         _dbContext = dbContext;
     }
 
-    public async Task<IReadOnlyList<UserResponseDto>> GetAllAsync(string? search, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<UserResponseDto>> GetAllAsync(
+        string? search,
+        string? role,
+        bool? isActive,
+        string sortBy,
+        string sortDirection,
+        CancellationToken cancellationToken)
     {
         var query = _dbContext.Users.AsNoTracking().AsQueryable();
 
@@ -31,9 +37,28 @@ public class UserService : IUserService
                 user.Email.ToLower().Contains(normalizedSearch));
         }
 
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            query = query.Where(user => user.Role == role);
+        }
+
+        if (isActive.HasValue)
+        {
+            query = query.Where(user => user.IsActive == isActive.Value);
+        }
+
+        var descending = sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase);
+        query = sortBy.ToLowerInvariant() switch
+        {
+            "email" => descending ? query.OrderByDescending(user => user.Email) : query.OrderBy(user => user.Email),
+            "role" => descending ? query.OrderByDescending(user => user.Role) : query.OrderBy(user => user.Role),
+            "createdat" => descending ? query.OrderByDescending(user => user.CreatedAt) : query.OrderBy(user => user.CreatedAt),
+            _ => descending
+                ? query.OrderByDescending(user => user.LastName).ThenByDescending(user => user.FirstName)
+                : query.OrderBy(user => user.LastName).ThenBy(user => user.FirstName)
+        };
+
         return await query
-            .OrderBy(user => user.LastName)
-            .ThenBy(user => user.FirstName)
             .Select(user => UserMapper.ToResponse(user))
             .ToListAsync(cancellationToken);
     }

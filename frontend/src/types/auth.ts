@@ -92,12 +92,17 @@ export interface UpdateProfileRequest {
 
 export interface AuthSession {
   token: string;
+  refreshToken?: string;
+  expiresAt?: string;
+  refreshTokenExpiresAt?: string;
   user: AuthUser;
 }
 
 export interface AuthResponse {
   token: string;
+  refreshToken?: string;
   expiresAt: string;
+  refreshTokenExpiresAt?: string;
   user: BackendUser;
 }
 

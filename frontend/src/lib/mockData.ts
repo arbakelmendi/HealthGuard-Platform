@@ -86,7 +86,6 @@ export const allPredictionRecords = [
 export const datasetsData = [
   { id: 1, name: "Heart Disease UCI", type: "Classification", records: 303, uploadDate: "2026-01-15", source: "UCI Repository", status: "Active" },
   { id: 2, name: "Diabetes Pima Indians", type: "Classification", records: 768, uploadDate: "2026-01-20", source: "Kaggle", status: "Active" },
-  { id: 3, name: "Blood Pressure Monitoring", type: "Regression", records: 12450, uploadDate: "2026-02-05", source: "Internal", status: "Active" },
   { id: 4, name: "Patient Clustering Set", type: "Clustering", records: 5200, uploadDate: "2026-02-18", source: "Hospital Partner", status: "Active" },
   { id: 5, name: "Lifestyle Survey 2025", type: "Classification", records: 8900, uploadDate: "2026-03-01", source: "Survey", status: "Processing" },
   { id: 6, name: "Symptom-Disease Mapping", type: "Classification", records: 1500, uploadDate: "2025-12-10", source: "Research", status: "Archived" },
@@ -99,11 +98,6 @@ export const mlModelsData = {
     { id: 2, name: "K-Nearest Neighbors", version: "v1.2", status: "Active", lastTrained: "2026-03-18", accuracy: 0.82, precision: 0.80, recall: 0.84, f1: 0.82, dataset: "Diabetes Pima Indians" },
     { id: 3, name: "Random Forest", version: "v2.1", status: "Active", lastTrained: "2026-04-01", accuracy: 0.91, precision: 0.90, recall: 0.92, f1: 0.91, dataset: "Heart Disease UCI" },
     { id: 4, name: "Neural Network", version: "v1.3", status: "Active", lastTrained: "2026-03-25", accuracy: 0.93, precision: 0.92, recall: 0.94, f1: 0.93, dataset: "Diabetes Pima Indians" },
-  ],
-  regression: [
-    { id: 5, name: "Linear Regression", version: "v2.0", status: "Active", lastTrained: "2026-03-15", rmse: 4.2, mae: 3.1, r2: 0.85, dataset: "Blood Pressure Monitoring" },
-    { id: 6, name: "Random Forest Regressor", version: "v1.5", status: "Active", lastTrained: "2026-03-22", rmse: 3.5, mae: 2.6, r2: 0.89, dataset: "Blood Pressure Monitoring" },
-    { id: 7, name: "XGBoost Regressor", version: "v1.0", status: "Training", lastTrained: "2026-04-05", rmse: 3.1, mae: 2.3, r2: 0.92, dataset: "Blood Pressure Monitoring" },
   ],
   clustering: [
     { id: 8, name: "K-Means", version: "v2.0", status: "Active", lastTrained: "2026-02-28", silhouette: 0.72, clusters: 4, dataset: "Patient Clustering Set" },
@@ -145,7 +139,6 @@ export const tuningHistoryData = [
   { id: 1, model: "Random Forest", date: "2026-04-01", params: "n_estimators=200, max_depth=10", beforeAccuracy: 0.88, afterAccuracy: 0.91, improvement: "+3.4%" },
   { id: 2, model: "Neural Network", date: "2026-03-25", params: "layers=[64,32], lr=0.001", beforeAccuracy: 0.90, afterAccuracy: 0.93, improvement: "+3.3%" },
   { id: 3, model: "Logistic Regression", date: "2026-03-20", params: "C=0.5, penalty=l2", beforeAccuracy: 0.84, afterAccuracy: 0.87, improvement: "+3.6%" },
-  { id: 4, model: "XGBoost Regressor", date: "2026-04-05", params: "n_estimators=300, lr=0.05", beforeAccuracy: 0.89, afterAccuracy: 0.92, improvement: "+3.4%" },
 ];
 
 // Classification report data
@@ -155,14 +148,6 @@ export const confusionMatrixData = {
   trueNegative: 128,
   falseNegative: 12,
 };
-
-// Regression report data
-export const predVsActualData = [
-  { actual: 120, predicted: 118 }, { actual: 135, predicted: 138 }, { actual: 140, predicted: 137 },
-  { actual: 110, predicted: 112 }, { actual: 155, predicted: 150 }, { actual: 128, predicted: 130 },
-  { actual: 145, predicted: 148 }, { actual: 132, predicted: 129 }, { actual: 118, predicted: 120 },
-  { actual: 160, predicted: 155 }, { actual: 125, predicted: 127 }, { actual: 142, predicted: 140 },
-];
 
 // Risk distribution data
 export const riskDistributionData = [

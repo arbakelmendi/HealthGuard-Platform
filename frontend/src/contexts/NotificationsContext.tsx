@@ -1,6 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { HubConnectionBuilder, HubConnectionState, LogLevel } from "@microsoft/signalr";
 import { useAuth } from "@/contexts/AuthContext";
+import { authStorage } from "@/lib/auth-storage";
 import { notificationsApi } from "@/services/notificationsApi";
+import type { NotificationResponse } from "@/services/notificationsApi";
+import { toast } from "sonner";
 
 interface NotificationsContextType {
   unreadCount: number;
@@ -33,6 +37,35 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   useEffect(() => {
     refreshUnreadCount().catch(() => setUnreadCount(0));
   }, [refreshUnreadCount]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !userId) {
+      return;
+    }
+
+    const connection = new HubConnectionBuilder()
+      .withUrl("/hubs/notifications", {
+        accessTokenFactory: () => authStorage.getSession()?.token ?? "",
+      })
+      .withAutomaticReconnect()
+      .configureLogging(LogLevel.Warning)
+      .build();
+
+    connection.on("notificationReceived", (notification: NotificationResponse) => {
+      setUnreadCount((current) => current + (notification.isRead ? 0 : 1));
+      toast(notification.title, { description: notification.message });
+    });
+
+    connection
+      .start()
+      .catch(() => undefined);
+
+    return () => {
+      if (connection.state !== HubConnectionState.Disconnected) {
+        connection.stop().catch(() => undefined);
+      }
+    };
+  }, [isAuthenticated, userId]);
 
   const value = useMemo(
     () => ({

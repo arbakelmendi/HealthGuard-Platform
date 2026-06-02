@@ -34,6 +34,21 @@ public class AuthController : ControllerBase
         return Ok(await _authService.LoginAsync(request, cancellationToken));
     }
 
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponseDto>> Refresh([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
+    {
+        return Ok(await _authService.RefreshAsync(request, cancellationToken));
+    }
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiMessageResponse>> Logout([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
+    {
+        await _authService.RevokeRefreshTokenAsync(request, cancellationToken);
+        return Ok(new ApiMessageResponse("Refresh token revoked."));
+    }
+
     [HttpPut("change-password")]
     [Authorize]
     public async Task<ActionResult<ApiMessageResponse>> ChangePassword([FromBody] ChangePasswordDto request, CancellationToken cancellationToken)

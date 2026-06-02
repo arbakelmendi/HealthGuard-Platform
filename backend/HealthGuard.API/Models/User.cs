@@ -23,7 +23,7 @@ public class User
 
     [Required]
     [MaxLength(20)]
-    public string Role { get; set; } = UserRoles.User;
+    public string Role { get; set; } = global::HealthGuard.API.Models.UserRoles.User;
 
     public int? Age { get; set; }
 
@@ -67,6 +67,28 @@ public class User
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     public ICollection<SymptomLog> SymptomLogs { get; set; } = new List<SymptomLog>();
+
+    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+
+    public ICollection<PatientProfile> PatientProfiles { get; set; } = new List<PatientProfile>();
+
+    public ICollection<UserMedicalCondition> UserMedicalConditions { get; set; } = new List<UserMedicalCondition>();
+
+    public ICollection<Medication> Medications { get; set; } = new List<Medication>();
+
+    public ICollection<Allergy> AllergiesList { get; set; } = new List<Allergy>();
+
+    public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+
+    public ICollection<Recommendation> Recommendations { get; set; } = new List<Recommendation>();
+
+    public ICollection<GeneratedReport> GeneratedReports { get; set; } = new List<GeneratedReport>();
+
+    public ICollection<ImportBatch> ImportBatches { get; set; } = new List<ImportBatch>();
+
+    public ICollection<DataExportJob> DataExportJobs { get; set; } = new List<DataExportJob>();
 
     public UserSettings? Settings { get; set; }
 }
