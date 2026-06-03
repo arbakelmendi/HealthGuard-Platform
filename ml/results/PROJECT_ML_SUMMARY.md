@@ -11,6 +11,7 @@
 | Neural network with two architectures | Done | `ml/notebooks/healthguard_ml.ipynb` section `Neural Network Classifier`; Architecture 1 uses `16 -> 8 -> output`, Architecture 2 uses `32 -> Dropout -> 16 -> 8 -> output` |
 | Hyperparameter tuning | Done | `ml/notebooks/healthguard_ml.ipynb` section `Classical Classification Models`; `GridSearchCV` with 5-fold cross-validation and F1-score scoring; final tuning summary in this document section `Hyperparameter Tuning Summary` |
 | Feature selection or dimensionality reduction | Done | `ml/notebooks/healthguard_ml.ipynb` sections `Feature Selection`, `Feature Selection Comparison Study`, and `PCA Visualization of Selected Clusters`; outputs in `ml/results/feature_selection_study.csv` and `ml/results/plots/kmeans_pca_clusters.png` |
+| Explainable AI and interpretability | Done | `ml/notebooks/healthguard_ml.ipynb` sections `Feature Importance and Top Predictive Health Indicators` and `SHAP Interpretation Summary and Local Explanations`; outputs in `ml/results/feature_importance.csv`, `ml/results/top_predictive_health_indicators.csv`, `ml/results/shap_interpretation_summary.csv`, and `ml/results/plots` |
 | Evaluation metrics | Done | `ml/notebooks/healthguard_ml.ipynb` sections `Final Model Comparison`, `Cross-Validation Stability`, `ROC-AUC Evaluation`, and confusion-matrix sections; outputs in `ml/results/final_model_results.csv`, `ml/results/cross_validation_results.csv`, and `ml/results/roc_curves.png` |
 | Comparison table | Done | `ml/results/final_model_results.csv`; `ml/model_comparison_results.json`; `ml/notebooks/healthguard_ml.ipynb` section `Final Model Comparison`; this document section `Hyperparameter Tuning Summary` |
 | Clustering | Done | `ml/notebooks/healthguard_ml.ipynb` section `Clustering Analysis`; target removed before K-Means; tests `k=2..10`; uses Elbow Method, Silhouette Score, PCA, ARI and NMI; outputs in `ml/results/clustering_evaluation.csv` and `ml/results/plots` |
@@ -201,6 +202,38 @@ The feature importance analysis also showed that the most influential features i
 `cp`, `thalach`, `ca`, `thal`, `exang`, `oldpeak`, `sex`, `slope`, `age`, `chol`
 
 These features are clinically meaningful because they describe chest pain, exercise response, heart rate behavior and diagnostic indicators.
+
+## Explainable AI Summary
+
+Explainable AI was added so the HealthGuard prediction workflow can be discussed in terms of both model performance and model reasoning. The main interpretability files are:
+
+- `ml/results/feature_importance.csv`: full feature ranking using normalized Logistic Regression coefficient strength and Random Forest importance.
+- `ml/results/top_predictive_health_indicators.csv`: student-friendly Top 10 table with feature names, health-indicator meanings and short interpretations.
+- `ml/results/shap_interpretation_summary.csv`: SHAP-style direction summary for Logistic Regression feature contributions.
+- `ml/results/plots/feature_importance.png`: Top 10 combined feature-importance chart.
+- `ml/results/plots/shap_summary.png`: global explainability chart based on permutation importance.
+- `ml/results/plots/shap_patient_example.png`: local high-risk and low-risk patient explanation examples.
+
+Top predictive health indicators:
+
+| Rank | Feature | Health Indicator | Model Interpretation |
+|---:|---|---|---|
+| 1 | `cp` | Chest pain type | Strongest combined signal; symptom pattern was highly informative for the model. |
+| 2 | `thalach` | Maximum heart rate achieved | Exercise heart-rate response helped separate patient risk profiles. |
+| 3 | `ca` | Number of major vessels colored by fluoroscopy | Important diagnostic indicator; direction depends on the dataset encoding. |
+| 4 | `thal` | Thalassemia result | Strong diagnostic feature in both Logistic Regression and Random Forest. |
+| 5 | `exang` | Exercise-induced angina | Clear exercise-response signal for the trained models. |
+| 6 | `oldpeak` | ST depression induced by exercise | Captures cardiac stress response during exercise. |
+| 7 | `sex` | Patient sex | Demographic context used by the model; should be interpreted carefully. |
+| 8 | `slope` | Slope of peak exercise ST segment | Adds ECG exercise-pattern information. |
+| 9 | `age` | Patient age | Present in the Top 10 but weaker than the strongest clinical indicators. |
+| 10 | `chol` | Serum cholesterol | Useful but less influential than chest-pain, exercise and diagnostic indicators. |
+
+The SHAP-style explanation uses Logistic Regression contribution values: each standardized feature value is multiplied by the learned coefficient. Positive contributions push the prediction toward higher modeled heart-disease risk, while negative contributions push it toward lower modeled risk. For categorical fields such as `cp`, `ca`, `thal`, `exang` and `slope`, the direction follows the numeric encoding in `heart.csv`, so these results should be explained as model behavior rather than direct medical causation.
+
+The local patient explanation plot shows one high-risk and one low-risk example. Red bars represent features that increased the predicted risk score, while blue bars represent features that lowered it. This helps HealthGuard explain why a prediction was made instead of only showing a final class label.
+
+These XAI outputs support the HealthGuard platform by making the final recommendation more transparent. They can be used in the admin results page, project report and presentation defense to explain which health indicators most influenced model predictions.
 
 ## Clustering Results
 

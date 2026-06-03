@@ -86,9 +86,9 @@ This folder contains plots, CSV summaries, and report files such as:
 - model comparison plots
 - ROC curves
 - confusion-matrix and metric summaries
-- feature importance outputs
+- feature importance outputs, including `feature_importance.csv` and `top_predictive_health_indicators.csv`
 - clustering Elbow Method, Silhouette Score, and PCA visualizations
-- SHAP plots
+- SHAP-style interpretation outputs, including `shap_interpretation_summary.csv`, `plots/shap_summary.png`, and `plots/shap_patient_example.png`
 - `HealthGuard_ML_Report.pdf`
 
 The platform-readable model metrics are exported to:

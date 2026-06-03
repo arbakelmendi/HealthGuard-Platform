@@ -1,0 +1,11 @@
+Overall Rank,Feature,Health Indicator,Combined Importance,Logistic Regression Direction,Random Forest Importance,Interpretation
+1,cp,Chest pain type,1.0,Increases predicted risk,0.210203822836872,"Chest-pain category was the strongest combined signal, showing that symptom pattern is highly informative for the model."
+2,thalach,Maximum heart rate achieved,0.6958078260964917,Increases predicted risk,0.136394972794876,Heart-rate response during exercise helped separate lower-risk and higher-risk patients.
+3,ca,Number of major vessels colored by fluoroscopy,0.6947094885873748,Decreases predicted risk,0.1337904459025345,"The vessel-count feature strongly affected model decisions, but coefficient direction depends on the dataset encoding."
+4,thal,Thalassemia result,0.6631354200844848,Decreases predicted risk,0.1378588202736114,The thalassemia category was an important diagnostic indicator for both Logistic Regression and Random Forest.
+5,exang,Exercise-induced angina,0.6617543840007776,Decreases predicted risk,0.1120842356696117,Exercise-induced angina was one of the clearest exercise-response indicators in the model.
+6,oldpeak,ST depression induced by exercise,0.52771188981938,Decreases predicted risk,0.0879848491515691,Exercise-related ST depression contributed meaningful information about cardiac stress response.
+7,sex,Patient sex,0.4218221749913652,Decreases predicted risk,0.0381316401891179,"Sex contributed to the model but should be interpreted carefully because it is demographic context, not a diagnosis by itself."
+8,slope,Slope of peak exercise ST segment,0.3026684406618314,Increases predicted risk,0.0334793619558305,The slope of the exercise ST segment added signal about exercise ECG behavior.
+9,age,Patient age,0.1983628833958239,Decreases predicted risk,0.0420864738389971,Age had weaker combined importance than the strongest clinical indicators in this trained model.
+10,chol,Serum cholesterol,0.171163394125805,Decreases predicted risk,0.0315115602309653,"Cholesterol appeared in the top ten but was less influential than chest pain, exercise and diagnostic indicators."
