@@ -131,6 +131,12 @@ If you are already inside the `ml` folder, use:
 pip install -r requirements.txt
 ```
 
+Optional but recommended: register the virtual environment as a Jupyter kernel:
+
+```bash
+python -m ipykernel install --user --name healthguard-ml --display-name "Python (HealthGuard ML)"
+```
+
 ## Running the Notebook
 
 Start Jupyter from the project root:
@@ -145,9 +151,31 @@ Or from inside the `ml` folder:
 jupyter notebook notebooks/healthguard_ml.ipynb
 ```
 
-The notebook reads the dataset from `ml/dataset/heart.csv`, trains and compares the models, saves model files under `ml/models`, and writes plots and analysis files under `ml/results`.
+For the most reproducible full run, execute the notebook from the project root without manual cell editing:
 
-After rerunning the notebook, make sure `ml/model_comparison_results.json` is up to date if the backend/admin dashboard should show the newest ML metrics.
+```bash
+jupyter nbconvert --to notebook --execute ml/notebooks/healthguard_ml.ipynb --inplace --ExecutePreprocessor.timeout=-1
+```
+
+The notebook reads the dataset from `ml/dataset/heart.csv`, trains and compares the models, saves model files under `ml/models`, writes plots and analysis files under `ml/results`, and exports `ml/model_comparison_results.json` for the backend/admin dashboard.
+
+## Reproducibility Notes
+
+The notebook is designed to run from the project root, the `ml` folder, or the `ml/notebooks` folder. It automatically locates `ml/dataset/heart.csv` and creates these folders if they do not already exist:
+
+- `ml/results`
+- `ml/results/plots`
+- `ml/models`
+
+Reproducibility settings are centralized near the top of the notebook:
+
+- `SEED = 42`
+- Python, NumPy and TensorFlow seeds are fixed.
+- TensorFlow deterministic operations are requested with `TF_DETERMINISTIC_OPS=1`.
+- `train_test_split`, `GridSearchCV` folds, cross-validation, permutation importance, K-Means and supported model constructors use the shared seed.
+- Neural-network dropout uses a fixed seed, and neural-network training disables data shuffling for deterministic cell reruns.
+
+Small numeric differences can still occur across operating systems, TensorFlow versions or hardware backends, but the workflow no longer requires manual path edits or manual output-folder creation.
 
 ## Running the Prediction API
 

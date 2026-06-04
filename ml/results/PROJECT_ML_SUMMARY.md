@@ -17,6 +17,30 @@
 | Clustering | Done | `ml/notebooks/healthguard_ml.ipynb` section `Clustering Analysis`; target removed before K-Means; tests `k=2..10`; uses Elbow Method, Silhouette Score, PCA, ARI and NMI; outputs in `ml/results/clustering_evaluation.csv` and `ml/results/plots` |
 | README and requirements.txt | Done | `README.md`, `ml/README.md`, and `ml/requirements.txt`; setup covers virtual environment, dependency installation, notebook execution, dataset location, results location, and platform integration |
 
+## Reproducibility Improvements
+
+The ML workflow was updated so the notebook can be rerun from start to finish without manual path edits or manual folder creation.
+
+Reproducibility checklist:
+
+- Fixed shared seed: the notebook defines `SEED = 42`.
+- Seeded libraries: Python `random`, NumPy and TensorFlow are seeded in the setup cell.
+- Deterministic TensorFlow request: `TF_DETERMINISTIC_OPS=1` is set where supported by the local TensorFlow installation.
+- Seeded model workflow: `train_test_split`, `StratifiedKFold`, `GridSearchCV`, permutation importance, K-Means, Decision Tree, Random Forest and neural-network dropout use the shared seed.
+- Deterministic neural-network training: neural-network cells reset the TensorFlow seed before model construction and disable training-data shuffling during `fit`.
+- Portable paths: the notebook locates `ml/dataset/heart.csv` from the current working directory and uses `pathlib.Path` objects for dataset, results, plots and model paths.
+- Automatic folders: `ml/results`, `ml/results/plots` and `ml/models` are created automatically at the top of the notebook.
+- Reproducible platform export: the notebook writes `ml/model_comparison_results.json` automatically after model evaluation, so the backend/admin dashboard can use the same results produced by the final notebook run.
+- API model export: the notebook saves the full-feature Logistic Regression model as `ml/models/logistic_model.pkl`, the scaler as `ml/models/scaler.pkl`, and feature columns as `ml/models/columns.pkl`.
+
+Exact full-run command from the project root:
+
+```bash
+jupyter nbconvert --to notebook --execute ml/notebooks/healthguard_ml.ipynb --inplace --ExecutePreprocessor.timeout=-1
+```
+
+Small numeric differences can still occur across machines because TensorFlow and numerical libraries may use different low-level kernels, but the workflow now has fixed seeds, stable paths and automatic output generation.
+
 ## Defense Preparation
 
 Each team member should be ready to explain one part of the ML workflow clearly and connect it to the saved files:
