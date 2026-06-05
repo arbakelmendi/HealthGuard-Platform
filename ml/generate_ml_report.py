@@ -18,6 +18,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 BASE_DIR = Path(__file__).resolve().parent
 DATASET_PATH = BASE_DIR / "dataset" / "heart.csv"
 RESULTS_DIR = BASE_DIR / "results"
+PLOTS_DIR = RESULTS_DIR / "plots"
 REPORT_PATH = RESULTS_DIR / "HealthGuard_ML_Report.pdf"
 
 
@@ -285,8 +286,14 @@ def generate_report(output_path: str | Path = REPORT_PATH) -> Path:
                     "These metrics are diagnostic only; the labels are not used by K-Means during clustering.",
                 ],
             )
-            _add_image_page(pdf, "Elbow Method", RESULTS_DIR / "elbow_method.png")
-            _add_image_page(pdf, "Silhouette Scores", RESULTS_DIR / "silhouette_scores.png")
+            _add_image_page(pdf, "Elbow Method", PLOTS_DIR / "elbow_method.png")
+            _add_image_page(pdf, "Silhouette Scores", PLOTS_DIR / "silhouette_scores.png")
+            _add_image_page(
+                pdf,
+                "PCA Cluster Visualization",
+                PLOTS_DIR / "kmeans_pca_clusters.png",
+                "The left plot shows K-Means cluster assignments. The right plot shows the true heart disease labels for the same PCA-projected patients.",
+            )
 
         if not feature_importance.empty:
             top_features = feature_importance.head(10)

@@ -203,6 +203,7 @@ Generated ML outputs are saved in:
 
 - `ml/models` for trained models, scalers, and column metadata
 - `ml/results` for plots, CSV summaries, and the generated PDF report
+- `ml/results/plots` for clustering plots such as the Elbow Method, Silhouette Score, and PCA cluster visualization
 - `ml/model_comparison_results.json` for the platform-readable model summary
 
 To run the ML prediction API used by the backend:

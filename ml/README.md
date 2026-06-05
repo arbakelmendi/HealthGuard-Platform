@@ -54,7 +54,7 @@ The models were evaluated using:
 ## Clustering
 
 K-Means clustering was also applied after removing the target variable.  
-PCA was used to visualize the clustering results in 2D.
+The notebook tests multiple `k` values, uses the Elbow Method and Silhouette Score to evaluate cluster quality, and compares the selected clusters with the true labels using Adjusted Rand Index (ARI) and Normalized Mutual Information (NMI). PCA was used to visualize the clustering results in 2D.
 
 ## Saved Model
 
@@ -75,13 +75,19 @@ The notebook saves generated outputs to:
 ml/results
 ```
 
+Clustering plots are saved under:
+
+```text
+ml/results/plots
+```
+
 This folder contains plots, CSV summaries, and report files such as:
 
 - model comparison plots
 - ROC curves
 - confusion-matrix and metric summaries
 - feature importance outputs
-- clustering and PCA visualizations
+- clustering Elbow Method, Silhouette Score, and PCA visualizations
 - SHAP plots
 - `HealthGuard_ML_Report.pdf`
 

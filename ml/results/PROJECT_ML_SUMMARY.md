@@ -120,6 +120,8 @@ These features are clinically meaningful because they describe chest pain, exerc
 
 ## Clustering Results
 
+K-Means clustering was performed as an unsupervised analysis step. The `target` class label was removed before clustering, so K-Means grouped patients only from the scaled clinical feature values. The true labels were used afterward only for interpretation.
+
 K-Means clustering was evaluated for `k` values from 2 to 10.
 
 The best cluster count was selected using Silhouette Score:
@@ -129,7 +131,17 @@ The best cluster count was selected using Silhouette Score:
 - Adjusted Rand Index: 0.4110
 - Normalized Mutual Information: 0.3502
 
+The Elbow Method was used to inspect how inertia changed as more clusters were added, and the Silhouette Score was used to choose the best-separated cluster count. PCA was used to visualize the selected K-Means clusters in two dimensions and compare them with the true class labels on the same projected feature space.
+
+The clustering plots are saved under `ml/results/plots`:
+
+- `elbow_method.png`
+- `silhouette_scores.png`
+- `kmeans_pca_clusters.png`
+
 The clustering results show that unsupervised learning was able to capture some structure related to the true heart disease labels, but the match was not perfect. This is expected because K-Means does not use the target labels during training and only groups patients based on feature similarity.
+
+In practical terms, the clusters represent broad patient profiles with similar clinical measurements, such as chest pain type, exercise response, ST depression, maximum heart rate, major vessel count and thalassemia values. They are useful for understanding the shape of the dataset, but they are not a replacement for the supervised classifiers and should not be interpreted as medical diagnoses.
 
 ## Best Model and Why It Performed Best
 
