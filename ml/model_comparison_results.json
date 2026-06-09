@@ -50,7 +50,17 @@
           28
         ]
       ],
-      "bestHyperparameters": "32 -> dropout 0.3 -> 16 -> 8 -> output; Adam lr 0.001",
+      "bestHyperparameters": {
+        "batch_size": 16,
+        "dropout_rate": 0.3,
+        "epochs": 50,
+        "hidden_layers": [
+          32,
+          16,
+          8
+        ],
+        "learning_rate": 0.001
+      },
       "selectedFeatures": null,
       "architecture": "32 neurons + Dropout -> 16 neurons -> 8 neurons -> output",
       "trainingHistory": {
@@ -534,7 +544,16 @@
           24
         ]
       ],
-      "bestHyperparameters": "16 -> 8 -> output; dropout 0.0; Adam lr 0.001",
+      "bestHyperparameters": {
+        "batch_size": 16,
+        "dropout_rate": 0.0,
+        "epochs": 50,
+        "hidden_layers": [
+          16,
+          8
+        ],
+        "learning_rate": 0.001
+      },
       "selectedFeatures": null,
       "architecture": "16 neurons -> 8 neurons -> output",
       "trainingHistory": {
