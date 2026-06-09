@@ -1,5 +1,32 @@
 # HealthGuard Machine Learning Project Summary
 
+## Course Requirements Checklist
+
+| Requirement | Status | Implemented file/section |
+|---|---|---|
+| Dataset and topic | Done | `ml/dataset/heart.csv`; `ml/notebooks/healthguard_ml.ipynb` section `Dataset Description`; this document section `Dataset Description` |
+| Preprocessing | Done | `ml/notebooks/healthguard_ml.ipynb` sections `Exploratory Data Analysis (EDA)`, `Missing Values`, `Duplicate Rows`, `Define Features and Target Variable`, `Feature Scaling`; outputs in `ml/results/eda_summary.csv` |
+| Train/test split | Done | `ml/notebooks/healthguard_ml.ipynb` section `Train-Test Split`; uses an 80/20 stratified split with `random_state=42` |
+| Four classifiers | Done | `ml/notebooks/healthguard_ml.ipynb` section `Classical Classification Models`; Logistic Regression, Decision Tree, KNN and Random Forest |
+| Neural network with two architectures | Done | `ml/notebooks/healthguard_ml.ipynb` section `Neural Network Classifier`; Architecture 1 uses `16 -> 8 -> output`, Architecture 2 uses `32 -> Dropout -> 16 -> 8 -> output` |
+| Hyperparameter tuning | Done | `ml/notebooks/healthguard_ml.ipynb` section `Classical Classification Models`; `GridSearchCV` with 5-fold cross-validation and F1-score scoring; final tuning summary in this document section `Hyperparameter Tuning Summary` |
+| Feature selection or dimensionality reduction | Done | `ml/notebooks/healthguard_ml.ipynb` sections `Feature Selection`, `Feature Selection Comparison Study`, and `PCA Visualization of Selected Clusters`; outputs in `ml/results/feature_selection_study.csv` and `ml/results/plots/kmeans_pca_clusters.png` |
+| Evaluation metrics | Done | `ml/notebooks/healthguard_ml.ipynb` sections `Final Model Comparison`, `Cross-Validation Stability`, `ROC-AUC Evaluation`, and confusion-matrix sections; outputs in `ml/results/final_model_results.csv`, `ml/results/cross_validation_results.csv`, and `ml/results/roc_curves.png` |
+| Comparison table | Done | `ml/results/final_model_results.csv`; `ml/model_comparison_results.json`; `ml/notebooks/healthguard_ml.ipynb` section `Final Model Comparison`; this document section `Hyperparameter Tuning Summary` |
+| Clustering | Done | `ml/notebooks/healthguard_ml.ipynb` section `Clustering Analysis`; target removed before K-Means; tests `k=2..10`; uses Elbow Method, Silhouette Score, PCA, ARI and NMI; outputs in `ml/results/clustering_evaluation.csv` and `ml/results/plots` |
+| README and requirements.txt | Done | `README.md`, `ml/README.md`, and `ml/requirements.txt`; setup covers virtual environment, dependency installation, notebook execution, dataset location, results location, and platform integration |
+
+## Defense Preparation
+
+Each team member should be ready to explain one part of the ML workflow clearly and connect it to the saved files:
+
+- Dataset and preprocessing member: explain why the Heart Disease dataset fits the HealthGuard topic, what the target values mean, why duplicate rows were removed, why no missing-value imputation was needed, and why scaling was applied before Logistic Regression, KNN, Neural Networks and K-Means.
+- Model training member: explain the 80/20 stratified train/test split, the four classical classifiers, why F1-score was used for tuning, what `GridSearchCV` tested, and why final test metrics are lower and more realistic than perfect scores.
+- Neural network member: explain both architectures, the role of ReLU, sigmoid output, binary cross-entropy, Adam optimizer and dropout, and compare neural network performance with the classical models.
+- Feature selection and explainability member: explain `SelectKBest`, the Top 10 and Top 5 feature experiments, feature importance, local patient explanations, and why simpler feature sets can improve interpretability but must still be validated.
+- Clustering member: explain that the target label was removed before K-Means, why multiple `k` values were tested, how the Elbow Method and Silhouette Score were used, what PCA shows, and how ARI/NMI compare clusters with true labels only after clustering.
+- Platform integration member: explain how `ml/models/logistic_model.pkl` and `ml/models/scaler.pkl` support the FastAPI prediction service in `ml/api/app.py`, how `ml/model_comparison_results.json` powers the HealthGuard backend/admin model summary, and where plots/reports are saved under `ml/results`.
+
 ## Dataset Description
 
 The HealthGuard machine learning module uses the Heart Disease dataset to predict whether a patient is likely to have heart disease based on clinical and demographic attributes.
