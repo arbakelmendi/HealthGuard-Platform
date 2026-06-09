@@ -101,6 +101,7 @@ The notebook also saves some image copies directly under `ml/results` to preserv
 - model comparison plots
 - ROC curves
 - confusion-matrix and metric summaries
+- 5-fold and 10-fold cross-validation summaries, detailed fold scores, and train/test versus CV comparison tables
 - feature importance outputs, including `feature_importance.csv` and `top_predictive_health_indicators.csv`
 - clustering Elbow Method, Silhouette Score, and PCA visualizations
 - SHAP-style interpretation outputs, including `shap_interpretation_summary.csv`, `plots/shap_summary.png`, and `plots/shap_patient_example.png`
