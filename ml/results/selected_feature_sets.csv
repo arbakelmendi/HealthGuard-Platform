@@ -1,0 +1,4 @@
+Feature Set,Feature Count,Selected Features,Removed Features
+All Features,13,"age, sex, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal",
+Top 10 Features,10,"cp, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal","age, sex, trestbps"
+Top 5 Features,5,"cp, exang, oldpeak, ca, thal","age, sex, trestbps, chol, fbs, restecg, thalach, slope"
