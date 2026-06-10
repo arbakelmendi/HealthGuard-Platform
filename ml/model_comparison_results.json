@@ -20,6 +20,13 @@
           28
         ]
       ],
+      "confusionMatrixValues": {
+        "trueNegatives": 21,
+        "falsePositives": 7,
+        "falseNegatives": 5,
+        "truePositives": 28
+      },
+      "confusionMatrixPlot": "C:\\Users\\olsas\\OneDrive\\Desktop\\HealthGuard\\healthguard-platform\\ml\\results\\confusion_matrix_logistic_regression.png",
       "bestHyperparameters": {
         "C": 1,
         "solver": "liblinear"
@@ -50,6 +57,13 @@
           28
         ]
       ],
+      "confusionMatrixValues": {
+        "trueNegatives": 21,
+        "falsePositives": 7,
+        "falseNegatives": 5,
+        "truePositives": 28
+      },
+      "confusionMatrixPlot": "C:\\Users\\olsas\\OneDrive\\Desktop\\HealthGuard\\healthguard-platform\\ml\\results\\confusion_matrix_neural_network_architecture_2.png",
       "bestHyperparameters": {
         "batch_size": 16,
         "dropout_rate": 0.3,
@@ -296,6 +310,13 @@
           28
         ]
       ],
+      "confusionMatrixValues": {
+        "trueNegatives": 21,
+        "falsePositives": 7,
+        "falseNegatives": 5,
+        "truePositives": 28
+      },
+      "confusionMatrixPlot": "C:\\Users\\olsas\\OneDrive\\Desktop\\HealthGuard\\healthguard-platform\\ml\\results\\confusion_matrix_knn_with_feature_selection.png",
       "bestHyperparameters": {
         "n_neighbors": 9,
         "weights": "uniform"
@@ -335,6 +356,13 @@
           27
         ]
       ],
+      "confusionMatrixValues": {
+        "trueNegatives": 22,
+        "falsePositives": 6,
+        "falseNegatives": 6,
+        "truePositives": 27
+      },
+      "confusionMatrixPlot": "C:\\Users\\olsas\\OneDrive\\Desktop\\HealthGuard\\healthguard-platform\\ml\\results\\confusion_matrix_logistic_regression_with_feature_selection.png",
       "bestHyperparameters": {
         "C": 0.01,
         "solver": "liblinear"
@@ -374,6 +402,13 @@
           28
         ]
       ],
+      "confusionMatrixValues": {
+        "trueNegatives": 20,
+        "falsePositives": 8,
+        "falseNegatives": 5,
+        "truePositives": 28
+      },
+      "confusionMatrixPlot": "C:\\Users\\olsas\\OneDrive\\Desktop\\HealthGuard\\healthguard-platform\\ml\\results\\confusion_matrix_random_forest_with_feature_selection.png",
       "bestHyperparameters": {
         "criterion": "entropy",
         "max_depth": 3,
@@ -414,6 +449,13 @@
           28
         ]
       ],
+      "confusionMatrixValues": {
+        "trueNegatives": 20,
+        "falsePositives": 8,
+        "falseNegatives": 5,
+        "truePositives": 28
+      },
+      "confusionMatrixPlot": "C:\\Users\\olsas\\OneDrive\\Desktop\\HealthGuard\\healthguard-platform\\ml\\results\\confusion_matrix_knn.png",
       "bestHyperparameters": {
         "n_neighbors": 7,
         "weights": "distance"
@@ -444,6 +486,13 @@
           29
         ]
       ],
+      "confusionMatrixValues": {
+        "trueNegatives": 18,
+        "falsePositives": 10,
+        "falseNegatives": 4,
+        "truePositives": 29
+      },
+      "confusionMatrixPlot": "C:\\Users\\olsas\\OneDrive\\Desktop\\HealthGuard\\healthguard-platform\\ml\\results\\confusion_matrix_decision_tree.png",
       "bestHyperparameters": {
         "criterion": "entropy",
         "max_depth": 3
@@ -474,6 +523,13 @@
           27
         ]
       ],
+      "confusionMatrixValues": {
+        "trueNegatives": 19,
+        "falsePositives": 9,
+        "falseNegatives": 6,
+        "truePositives": 27
+      },
+      "confusionMatrixPlot": "C:\\Users\\olsas\\OneDrive\\Desktop\\HealthGuard\\healthguard-platform\\ml\\results\\confusion_matrix_random_forest.png",
       "bestHyperparameters": {
         "criterion": "entropy",
         "max_depth": 3,
@@ -505,6 +561,13 @@
           26
         ]
       ],
+      "confusionMatrixValues": {
+        "trueNegatives": 20,
+        "falsePositives": 8,
+        "falseNegatives": 7,
+        "truePositives": 26
+      },
+      "confusionMatrixPlot": "C:\\Users\\olsas\\OneDrive\\Desktop\\HealthGuard\\healthguard-platform\\ml\\results\\confusion_matrix_decision_tree_with_feature_selection.png",
       "bestHyperparameters": {
         "criterion": "entropy",
         "max_depth": 5
@@ -544,6 +607,13 @@
           24
         ]
       ],
+      "confusionMatrixValues": {
+        "trueNegatives": 21,
+        "falsePositives": 7,
+        "falseNegatives": 9,
+        "truePositives": 24
+      },
+      "confusionMatrixPlot": "C:\\Users\\olsas\\OneDrive\\Desktop\\HealthGuard\\healthguard-platform\\ml\\results\\confusion_matrix_neural_network_architecture_1.png",
       "bestHyperparameters": {
         "batch_size": 16,
         "dropout_rate": 0.0,
