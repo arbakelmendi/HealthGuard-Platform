@@ -60,6 +60,10 @@ The notebook tests multiple `k` values, uses the Elbow Method and Silhouette Sco
 
 The Logistic Regression model was saved for integration with the HealthGuard backend.
 
+## Final Model Recommendation
+
+The recommended classifier for HealthGuard is Logistic Regression. In the final comparison it tied for the best F1-score, kept strong recall for detecting heart-disease cases, and remained easier to explain and deploy than KNN, Random Forest, or Neural Network alternatives. Recall is especially important in this use case because a false negative may miss a patient who is actually at risk.
+
 Saved files:
 
 - models/logistic_model.pkl

@@ -132,7 +132,7 @@ Best hyperparameters and final test metrics from `ml/results/final_model_results
 
 | Model | Best Parameters | Accuracy | Precision | Recall | F1-score | ROC-AUC |
 |---|---|---:|---:|---:|---:|---:|
-| Logistic Regression with Feature Selection | `C=0.1`, `solver=lbfgs` | 0.8197 | 0.8235 | 0.8485 | 0.8358 | 0.8799 |
+| Logistic Regression with Feature Selection | `C=0.01`, `solver=liblinear` | 0.8033 | 0.8182 | 0.8182 | 0.8182 | 0.8820 |
 | Logistic Regression | `C=0.01`, `solver=lbfgs` | 0.8033 | 0.7838 | 0.8788 | 0.8286 | 0.8810 |
 | KNN | `n_neighbors=9`, `weights=uniform` | 0.8033 | 0.7838 | 0.8788 | 0.8286 | 0.8626 |
 | Random Forest | `criterion=entropy`, `max_depth=3`, `n_estimators=200` | 0.8033 | 0.8000 | 0.8485 | 0.8235 | 0.8755 |
@@ -155,7 +155,7 @@ Logistic Regression was one of the strongest all-feature models, with F1-score `
 
 ### Logistic Regression with Feature Selection
 
-Logistic Regression with Feature Selection was the best final train-test model, with accuracy `0.8197`, precision `0.8235`, recall `0.8485`, F1-score `0.8358` and ROC-AUC `0.8799`. It improved the precision-recall balance compared with the full-feature version and used a simpler selected feature set. Cross-validation F1 mean was `0.8644`, which supports stable generalization. Its main weakness is that the selected feature set must be revalidated if the dataset changes. This model performed better than other final models because it kept the strongest clinical signals while reducing weaker or noisier inputs.
+Logistic Regression with Feature Selection achieved accuracy `0.8033`, precision `0.8182`, recall `0.8182`, F1-score `0.8182` and ROC-AUC `0.8820`. It produced the highest ROC-AUC in the final comparison and improved precision compared with the all-feature Logistic Regression model, but it reduced recall and slightly reduced F1-score. Its main weakness is that the selected feature set must be revalidated if the dataset changes. This result shows that feature selection improved ranking quality and precision for Logistic Regression, but the full feature set preserved better recall.
 
 ### Decision Tree
 
@@ -171,11 +171,11 @@ KNN matched full Logistic Regression on final F1-score (`0.8286`) and recall (`0
 
 ### KNN with Feature Selection
 
-KNN with Feature Selection achieved final F1-score `0.8235` and had the strongest cross-validation F1 mean (`0.8716`) with low F1 standard deviation. This suggests stable behavior across folds, likely because feature selection improved distance quality by removing less useful dimensions. However, it did not beat Logistic Regression with Feature Selection on the final held-out test split and remains harder to explain to users.
+KNN with Feature Selection tied for the best final F1-score (`0.8235`) and had the strongest cross-validation F1 mean (`0.8716`) with low F1 standard deviation. This suggests stable behavior across folds, likely because feature selection improved distance quality by removing less useful dimensions. However, it did not beat all-feature Logistic Regression on the final held-out test split and remains harder to explain to users.
 
 ### Random Forest
 
-Random Forest achieved balanced final metrics: precision `0.8000`, recall `0.8485`, F1-score `0.8235` and ROC-AUC `0.8755`. It can model non-linear feature interactions better than Logistic Regression and performed better than a single Decision Tree. GridSearchCV selected `n_estimators=200`, `criterion=entropy` and `max_depth=3`. The shallow depth limits overfitting but may also limit model capacity. It did not outperform Logistic Regression with Feature Selection, which suggests the dataset is small enough that the extra ensemble complexity is not clearly beneficial.
+Random Forest achieved final precision `0.7500`, recall `0.8182`, F1-score `0.7826` and ROC-AUC `0.8766`. It can model non-linear feature interactions better than Logistic Regression and performed better than a single Decision Tree on ROC-AUC, but it did not match the leading F1-score models. GridSearchCV selected `n_estimators=50`, `criterion=entropy` and `max_depth=3`. The shallow depth limits overfitting but may also limit model capacity, suggesting the dataset is small enough that extra ensemble complexity is not clearly beneficial.
 
 ### Random Forest with Feature Selection
 
@@ -191,9 +191,9 @@ Neural Network Architecture 2 used `32 -> Dropout -> 16 -> 8 -> output`. Dropout
 
 ## Final HealthGuard Model Recommendation
 
-The recommended model for HealthGuard is **Logistic Regression with Feature Selection**. It achieved the best final F1-score (`0.8358`), the best final accuracy (`0.8197`), strong ROC-AUC (`0.8799`) and a good balance between precision and recall. It is also fast, easy to deploy and easier to explain than KNN, Random Forest or Neural Networks.
+The recommended model for HealthGuard is **Logistic Regression**. It tied for the best final F1-score (`0.8235`) with KNN with Feature Selection and Neural Network Architecture 2, while also keeping strong recall (`0.8485`) and the highest ROC-AUC among those F1-score leaders (`0.8712`). The highest-recall model was the Decision Tree (`0.8788`), but it had lower precision (`0.7436`) and a lower F1-score (`0.8056`), meaning it found one more heart-disease case at the cost of more false positives.
 
-This matters for HealthGuard because the platform should provide understandable health-risk feedback. A transparent Logistic Regression model can support prediction explanations and feature-importance discussion, while the selected feature set keeps the model simpler. For these reasons, Logistic Regression with Feature Selection is the strongest final candidate for the HealthGuard ML integration.
+This matters for HealthGuard because recall is important in heart disease prediction: a false negative can miss a patient who may need further medical attention. Precision still matters because too many false positives can create unnecessary stress and follow-up workload. Logistic Regression provides the strongest overall balance for the platform because it combines top F1-score, strong recall, good ranking quality, fast inference and clear interpretability. It should be used as the production baseline, with recall monitored over time and the classification threshold revisited if future validation shows false negatives are too costly.
 
 ## Feature Selection Summary
 
@@ -288,22 +288,22 @@ In practical terms, the clusters represent broad patient profiles with similar c
 
 The best model in the final train-test comparison was:
 
-**Logistic Regression with Feature Selection**
+**Logistic Regression**
 
 Final test metrics:
 
-- Accuracy: 0.8197
-- Precision: 0.8235
+- Accuracy: 0.8033
+- Precision: 0.8000
 - Recall: 0.8485
-- F1-score: 0.8358
-- ROC-AUC: 0.8799
+- F1-score: 0.8235
+- ROC-AUC: 0.8712
 
 This model performed best by F1-score, which is important because F1-score balances precision and recall. In a heart disease prediction task, both types of error matter:
 
 - A false negative may miss a patient who is actually at risk.
 - A false positive may incorrectly flag a patient as high risk.
 
-Logistic Regression with Feature Selection performed well because it combined strong predictive performance with a simpler and more interpretable feature set. The model also had a strong ROC-AUC score, meaning it was effective at separating high-risk and low-risk patients across different probability thresholds.
+Logistic Regression performed well because the scaled heart-disease features contain strong linear risk patterns. Regularization selected during tuning helped preserve generalization, and the full feature set kept enough signal to maintain recall. It also had the strongest ROC-AUC among the models tied for best F1-score, meaning it ranked high-risk and low-risk patients well across probability thresholds.
 
 Cross-validation results also showed that several models were stable across folds. The strongest cross-validation F1-score mean was achieved by KNN with Feature Selection, followed by Random Forest with Feature Selection and Logistic Regression with Feature Selection. This supports the conclusion that feature-selected models were competitive and stable, even when evaluated across multiple validation splits.
 
@@ -311,7 +311,7 @@ Cross-validation results also showed that several models were stable across fold
 
 The HealthGuard ML project demonstrates a complete machine learning workflow for heart disease risk prediction. The project includes data exploration, preprocessing, supervised classification, neural network experimentation, hyperparameter tuning, feature selection, clustering, cross-validation, ROC analysis, learning curves and explainability.
 
-The dataset was cleaned by removing duplicates and verified to have no missing values. Multiple models were trained and compared using appropriate classification metrics. Logistic Regression with Feature Selection achieved the best final F1-score, making it the strongest final candidate for this project because it balances predictive performance, interpretability and reliability.
+The dataset was cleaned by removing duplicates and verified to have no missing values. Multiple models were trained and compared using appropriate classification metrics. Logistic Regression tied for the best final F1-score and provided the strongest practical balance of recall, ROC-AUC, interpretability and deployment simplicity, making it the strongest final candidate for this project.
 
 The project also shows that reducing features can be useful, but it must be evaluated carefully. Some models improved or stayed stable with fewer features, while others lost performance. This demonstrates an important machine learning principle: simpler models are not always worse, but feature reduction should be validated using metrics and not assumed to be beneficial.
 

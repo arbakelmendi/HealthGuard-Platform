@@ -12,7 +12,7 @@ This document helps the team prepare for a project defense of the HealthGuard ma
 
 HealthGuard uses machine learning to predict heart disease risk from patient clinical and demographic attributes. The workflow includes exploratory data analysis, preprocessing, supervised classification, neural-network experiments, feature selection, explainable AI, clustering, cross-validation and platform integration.
 
-The final recommended model is **Logistic Regression with Feature Selection** because it achieved the best final F1-score while remaining simple, fast and explainable for a health-risk screening platform.
+The final recommended model is **Logistic Regression** because it tied for the best final F1-score, kept strong recall, had the strongest ROC-AUC among the F1-score leaders and remained simple, fast and explainable for a health-risk screening platform.
 
 ## Dataset Selection
 
@@ -38,13 +38,13 @@ Expected answer: Scaling was needed because several models are sensitive to feat
 
 Expected answer: We trained Logistic Regression, Decision Tree, KNN, Random Forest and two Neural Network architectures. We also evaluated feature-selected versions of the classical models.
 
-**Question: Why is Logistic Regression with Feature Selection recommended?**
+**Question: Why is Logistic Regression recommended?**
 
-Expected answer: It had the best final F1-score (`0.8358`) and accuracy (`0.8197`) in the final test comparison. It also had strong ROC-AUC (`0.8799`) and is easier to explain than KNN, Random Forest or Neural Networks. For HealthGuard, interpretability matters because users and evaluators should understand which health indicators influenced the prediction.
+Expected answer: It tied for the best final F1-score (`0.8235`) with KNN with Feature Selection and Neural Network Architecture 2. It also kept strong recall (`0.8485`) and had the highest ROC-AUC among those F1-score leaders (`0.8712`). For HealthGuard, this makes it the best practical choice because it balances predictive performance with fast deployment and clear explanation.
 
 **Question: Why not choose the most complex model?**
 
-Expected answer: More complex models do not always perform better, especially on a small tabular dataset. The neural networks and Random Forest were useful comparisons, but they did not beat Logistic Regression with Feature Selection. A simpler model with strong metrics is better for this project because it is easier to deploy, explain and defend.
+Expected answer: More complex models do not always perform better, especially on a small tabular dataset. Neural Network Architecture 2 tied Logistic Regression on F1-score, but it did not improve recall or accuracy and had lower ROC-AUC. A simpler Logistic Regression model with the same F1-score is better for this project because it is easier to deploy, explain and defend.
 
 **Question: Why is F1-score important here?**
 
@@ -86,9 +86,9 @@ Expected answer: Feature selection chooses a smaller group of useful input featu
 
 Expected answer: The notebook uses `SelectKBest`. The main feature-selected classifier experiment uses 8 selected features. A separate comparison study also evaluates Top 10 and Top 5 feature sets using Mutual Information.
 
-**Question: Which features were selected for the final recommended model?**
+**Question: Which features were selected in the feature-selection experiment?**
 
-Expected answer: The selected features were:
+Expected answer: Feature selection was evaluated as an experiment, but the final recommended Logistic Regression model uses the full feature set. The main selected features in the feature-selection experiment were:
 
 `sex`, `cp`, `thalach`, `exang`, `oldpeak`, `slope`, `ca`, `thal`
 
