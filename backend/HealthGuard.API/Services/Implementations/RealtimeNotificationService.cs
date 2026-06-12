@@ -1,27 +1,22 @@
 using HealthGuard.API.DTOs.Notifications;
 using HealthGuard.API.Hubs;
 using HealthGuard.API.Models;
-using HealthGuard.API.Repositories.Interfaces;
 using HealthGuard.API.Services.Interfaces;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 
 namespace HealthGuard.API.Services.Implementations;
 
 public class RealtimeNotificationService : IRealtimeNotificationService
 {
     private readonly IHubContext<NotificationsHub> _hubContext;
-    private readonly INotificationRepository _notificationRepository;
-    private readonly IRedisCacheService _redisCacheService;
+    private readonly INotificationService _notificationService;
 
     public RealtimeNotificationService(
         IHubContext<NotificationsHub> hubContext,
-        INotificationRepository notificationRepository,
-        IRedisCacheService redisCacheService)
+        INotificationService notificationService)
     {
         _hubContext = hubContext;
-        _notificationRepository = notificationRepository;
-        _redisCacheService = redisCacheService;
+        _notificationService = notificationService;
     }
 
     public async Task SendNotificationAsync(Notification notification, CancellationToken cancellationToken)
@@ -40,20 +35,7 @@ public class RealtimeNotificationService : IRealtimeNotificationService
             ReadAt = notification.ReadAt
         };
 
-        var unreadCount = await _notificationRepository.Query(true)
-            .CountAsync(
-                item => item.UserId == notification.UserId && !item.IsRead,
-                cancellationToken);
-
-        await _redisCacheService.SetIntAsync(
-            $"healthguard:user:{notification.UserId}:notifications:unreadCount",
-            unreadCount);
-        await _redisCacheService.PushToListAsync(
-            $"healthguard:user:{notification.UserId}:notifications:latest",
-            response,
-            maxLength: 20,
-            expiration: TimeSpan.FromDays(7));
-        await _redisCacheService.RemoveAsync($"healthguard:dashboard:user:{notification.UserId}");
+        await _notificationService.InvalidateUnreadCountAsync(notification.UserId);
 
         await _hubContext.Clients
             .Group(NotificationsHub.GetUserGroup(notification.UserId))

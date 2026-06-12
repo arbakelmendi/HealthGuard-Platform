@@ -17,16 +17,16 @@ public class NotificationsController : ControllerBase
 {
     private readonly IApplicationDataService _dataService;
     private readonly IRealtimeNotificationService _realtimeNotificationService;
-    private readonly IRedisCacheService _redisCacheService;
+    private readonly INotificationService _notificationService;
 
     public NotificationsController(
         IApplicationDataService dataService,
         IRealtimeNotificationService realtimeNotificationService,
-        IRedisCacheService redisCacheService)
+        INotificationService notificationService)
     {
         _dataService = dataService;
         _realtimeNotificationService = realtimeNotificationService;
-        _redisCacheService = redisCacheService;
+        _notificationService = notificationService;
     }
 
     [HttpGet("user/{userId:int}")]
@@ -82,17 +82,7 @@ public class NotificationsController : ControllerBase
     {
         EnsureCanAccessUser(userId);
 
-        var cacheKey = GetUnreadCountKey(userId);
-        var cachedCount = await _redisCacheService.GetIntAsync(cacheKey);
-        if (cachedCount.HasValue)
-        {
-            return Ok(new { unreadCount = cachedCount.Value });
-        }
-
-        var count = await _dataService.Query<Notification>(true)
-            .CountAsync(notification => notification.UserId == userId && !notification.IsRead, cancellationToken);
-
-        await _redisCacheService.SetIntAsync(cacheKey, count);
+        var count = await _notificationService.GetUnreadCountAsync(userId, cancellationToken);
         return Ok(new { unreadCount = count });
     }
 
@@ -116,7 +106,7 @@ public class NotificationsController : ControllerBase
             notification.IsRead = true;
             notification.ReadAt = DateTime.UtcNow;
             await _dataService.SaveChangesAsync(cancellationToken);
-            await SynchronizeUnreadCountAsync(notification.UserId, cancellationToken);
+            await _notificationService.InvalidateUnreadCountAsync(notification.UserId);
         }
 
         return Ok(ToResponse(notification));
@@ -141,8 +131,7 @@ public class NotificationsController : ControllerBase
         }
 
         await _dataService.SaveChangesAsync(cancellationToken);
-        await _redisCacheService.SetIntAsync(GetUnreadCountKey(userId), 0);
-        await _redisCacheService.RemoveAsync($"healthguard:dashboard:user:{userId}");
+        await _notificationService.InvalidateUnreadCountAsync(userId);
 
         return Ok(new ApiMessageResponse("All notifications marked as read."));
     }
@@ -321,18 +310,6 @@ public class NotificationsController : ControllerBase
             ReadAt = notification.ReadAt
         };
     }
-
-    private async Task SynchronizeUnreadCountAsync(int userId, CancellationToken cancellationToken)
-    {
-        var unreadCount = await _dataService.Query<Notification>(true)
-            .CountAsync(notification => notification.UserId == userId && !notification.IsRead, cancellationToken);
-
-        await _redisCacheService.SetIntAsync(GetUnreadCountKey(userId), unreadCount);
-        await _redisCacheService.RemoveAsync($"healthguard:dashboard:user:{userId}");
-    }
-
-    private static string GetUnreadCountKey(int userId) =>
-        $"healthguard:user:{userId}:notifications:unreadCount";
 
     private static void ValidateNotificationType(string type)
     {
