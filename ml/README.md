@@ -10,6 +10,16 @@ It includes:
 - generated plots and reports
 - a small FastAPI service used by the HealthGuard backend for predictions
 
+## Recommended Environment
+
+Use Python 3.11 for the most predictable local setup. The notebook relies on TensorFlow, scikit-learn and Jupyter, so using a virtual environment is recommended to keep these packages isolated from the rest of the platform.
+
+The commands below assume they are run from the repository root:
+
+```text
+healthguard-platform
+```
+
 ## Dataset
 
 The dataset used is the Heart Disease Dataset.  
@@ -39,7 +49,8 @@ The following classification models were implemented:
 1. Logistic Regression
 2. Decision Tree
 3. K-Nearest Neighbors
-4. Neural Network
+4. Random Forest
+5. Neural Network
 
 ## Evaluation Metrics
 
@@ -71,21 +82,21 @@ Saved files:
 
 Other saved model assets may also be present in `models`, such as the selected classical model, neural model, and feature column metadata.
 
-## Results and Plots
+## Project Files and Outputs
 
-The notebook saves generated outputs to:
+The ML workflow uses and creates files in these locations:
 
-```text
-ml/results
-```
+| Type | Location | Notes |
+| --- | --- | --- |
+| Input dataset | `ml/dataset/heart.csv` | Source heart disease CSV used by the notebook. |
+| Notebook | `ml/notebooks/healthguard_ml.ipynb` | Main exploratory analysis, training, evaluation and export workflow. |
+| Trained models | `ml/models` | Saved `.pkl` and `.keras` model assets, including `logistic_model.pkl` and `scaler.pkl` for the prediction API. |
+| Result CSV files | `ml/results` | Model comparison tables, feature-selection results, clustering metrics, SHAP-style summaries and other tabular outputs. |
+| JSON outputs | `ml/model_comparison_results.json` | Platform-readable model metrics used by the backend/admin report pages. |
+| Visualizations | `ml/results/plots` | Main plot folder for confusion matrices, ROC curves, clustering plots, feature plots and interpretation images. |
+| Report files | `ml/results` | Generated report artifacts such as `HealthGuard_ML_Report.pdf`. |
 
-Clustering plots are saved under:
-
-```text
-ml/results/plots
-```
-
-This folder contains plots, CSV summaries, and report files such as:
+The notebook also saves some image copies directly under `ml/results` to preserve existing project file paths. Common outputs include:
 
 - model comparison plots
 - ROC curves
@@ -103,9 +114,15 @@ ml/model_comparison_results.json
 
 The backend uses this JSON file for the admin model summary and report pages.
 
-## How to Run
+## Setup
 
 From the project root, create a Python virtual environment:
+
+```bash
+py -3.11 -m venv ml/.venv
+```
+
+If the `py` launcher is not available, use:
 
 ```bash
 python -m venv ml/.venv
@@ -123,9 +140,10 @@ Activate it on macOS or Linux:
 source ml/.venv/bin/activate
 ```
 
-Install dependencies from the project root:
+Install the ML dependencies with `requirements.txt`:
 
 ```bash
+python -m pip install --upgrade pip
 pip install -r ml/requirements.txt
 ```
 
@@ -134,6 +152,16 @@ If you are already inside the `ml` folder, use:
 ```bash
 pip install -r requirements.txt
 ```
+
+The requirements file includes the libraries used by the notebook for data analysis, modeling, visualization and export:
+
+- `pandas`, `numpy`
+- `scikit-learn`
+- `matplotlib`, `seaborn`
+- `joblib`
+- `tensorflow`
+- `jupyter`, `notebook`, `ipykernel`
+- `fastapi`, `pydantic`, `uvicorn` for the ML prediction API
 
 Optional but recommended: register the virtual environment as a Jupyter kernel:
 
@@ -154,6 +182,8 @@ Or from inside the `ml` folder:
 ```bash
 jupyter notebook notebooks/healthguard_ml.ipynb
 ```
+
+In Jupyter, select the `Python (HealthGuard ML)` kernel if you registered it during setup, then run the notebook from top to bottom.
 
 For the most reproducible full run, execute the notebook from the project root without manual cell editing:
 

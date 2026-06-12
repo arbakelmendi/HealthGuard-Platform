@@ -6,12 +6,11 @@ seaborn>=0.13
 joblib>=1.4
 
 tensorflow>=2.21
-keras>=3.0
 
 jupyter>=1.0
 notebook>=7.0
 ipykernel>=6.0
 
-
-fastapi
-uvicorn
+fastapi>=0.110
+pydantic>=2.0
+uvicorn>=0.27
