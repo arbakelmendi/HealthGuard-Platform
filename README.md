@@ -4,6 +4,7 @@ HealthGuard is a university health monitoring platform built with:
 
 - ASP.NET Core Web API (.NET 8)
 - Entity Framework Core and Microsoft SQL Server
+- Redis NoSQL cache and real-time support store
 - React, TypeScript, and Vite
 - JWT authentication with refresh tokens
 - SignalR real-time notifications
@@ -35,7 +36,20 @@ dotnet user-secrets set "Cors:AllowedOrigins:0" "http://localhost:5173" --projec
 dotnet user-secrets set "MlApi:BaseUrl" "http://localhost:8000" --project backend/HealthGuard.API
 ```
 
-4. Run the API:
+4. Run Redis locally with Docker:
+
+```powershell
+docker run --name healthguard-redis -p 6379:6379 -d redis
+```
+
+Configure Redis with either an environment variable or a user secret:
+
+```powershell
+$env:Redis__ConnectionString = "localhost:6379"
+dotnet user-secrets set "Redis:ConnectionString" "localhost:6379" --project backend/HealthGuard.API
+```
+
+5. Run the API:
 
 ```powershell
 dotnet run --project backend/HealthGuard.API
@@ -44,6 +58,25 @@ dotnet run --project backend/HealthGuard.API
 The API applies EF Core migrations on startup and seeds the admin account.
 
 ## Database and Migrations
+
+Microsoft SQL Server remains the authoritative relational database for all users, roles, health records, predictions, symptoms, reports, notifications, settings, and other domain entities. The existing `HealthGuardDb` schema and EF Core migrations remain unchanged.
+
+Redis is the platform's NoSQL integration. It is used only for:
+
+- Five-minute user and admin dashboard summary caches
+- Per-user unread notification counts
+- Recent per-user real-time notification payloads
+- Fast cache reads with automatic fallback to MSSQL
+
+Redis unavailability does not replace or interrupt MSSQL persistence. Redis errors are logged, cache reads fall back to SQL queries, and API requests continue using the relational database.
+
+Required backend environment variables:
+
+```text
+ConnectionStrings__DefaultConnection=Server=localhost;Database=HealthGuardDb;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False;
+Redis__ConnectionString=localhost:6379
+Jwt__Key=replace-with-a-long-random-secret-at-least-32-chars
+```
 
 The database includes authentication, authorization, audit, notification, reporting, import/export, and health domain tables. Mandatory tables added include:
 

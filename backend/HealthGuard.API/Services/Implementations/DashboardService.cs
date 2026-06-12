@@ -10,15 +10,27 @@ namespace HealthGuard.API.Services.Implementations;
 
 public class DashboardService : IDashboardService
 {
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
     private readonly ApplicationDbContext _dbContext;
+    private readonly IRedisCacheService _redisCacheService;
 
-    public DashboardService(ApplicationDbContext dbContext)
+    public DashboardService(
+        ApplicationDbContext dbContext,
+        IRedisCacheService redisCacheService)
     {
         _dbContext = dbContext;
+        _redisCacheService = redisCacheService;
     }
 
     public async Task<DashboardDto> GetMineAsync(int userId, CancellationToken cancellationToken)
     {
+        var cacheKey = $"healthguard:dashboard:user:{userId}";
+        var cachedDashboard = await _redisCacheService.GetAsync<DashboardDto>(cacheKey);
+        if (cachedDashboard is not null)
+        {
+            return cachedDashboard;
+        }
+
         var user = await _dbContext.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == userId && item.IsActive, cancellationToken);
@@ -78,7 +90,7 @@ public class DashboardService : IDashboardService
         var stressScore = CalculateStressScore(latestRecord, latestPrediction, recentSymptoms);
         var healthScore = CalculateHealthScore(cardioScore, sleepScore, stressScore, latestPrediction?.RiskScore);
 
-        return new DashboardDto
+        var dashboard = new DashboardDto
         {
             UserName = user.FirstName,
             CurrentDate = DateTime.UtcNow,
@@ -118,6 +130,35 @@ public class DashboardService : IDashboardService
                 CreatedAt = item.CreatedAt
             }).ToList()
         };
+
+        await _redisCacheService.SetAsync(cacheKey, dashboard, CacheDuration);
+        return dashboard;
+    }
+
+    public async Task<AdminDashboardDto> GetAdminAsync(CancellationToken cancellationToken)
+    {
+        const string cacheKey = "healthguard:dashboard:admin";
+        var cachedDashboard = await _redisCacheService.GetAsync<AdminDashboardDto>(cacheKey);
+        if (cachedDashboard is not null)
+        {
+            return cachedDashboard;
+        }
+
+        var dashboard = new AdminDashboardDto
+        {
+            TotalUsers = await _dbContext.Users.AsNoTracking().CountAsync(cancellationToken),
+            TotalHealthRecords = await _dbContext.HealthRecords.AsNoTracking().CountAsync(cancellationToken),
+            TotalPredictions = await _dbContext.PredictionResults.AsNoTracking().CountAsync(cancellationToken),
+            HighRiskCases = await _dbContext.PredictionResults
+                .AsNoTracking()
+                .CountAsync(
+                    prediction => prediction.RiskLevel == "High" || prediction.RiskScore >= 70,
+                    cancellationToken),
+            GeneratedAt = DateTime.UtcNow
+        };
+
+        await _redisCacheService.SetAsync(cacheKey, dashboard, CacheDuration);
+        return dashboard;
     }
 
     private static IReadOnlyList<DashboardTrendPointDto> BuildTrend(
