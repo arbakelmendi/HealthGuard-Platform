@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -7,38 +8,44 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
-import LoginPage from "./pages/LoginPage";
-import SignupPage from "./pages/SignupPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import Index from "./pages/Index";
-import DashboardPage from "./pages/DashboardPage";
-import MyProfilePage from "./pages/MyProfilePage";
-import HealthProfilePage from "./pages/HealthProfilePage";
-import SymptomsPage from "./pages/SymptomsPage";
-import RiskAssessmentPage from "./pages/RiskAssessmentPage";
-import PredictionsPage from "./pages/PredictionsPage";
-import RecommendationsPage from "./pages/RecommendationsPage";
-import ReportsPage from "./pages/ReportsPage";
-import NotificationsPage from "./pages/NotificationsPage";
-import SettingsPage from "./pages/SettingsPage";
-import NotFound from "./pages/NotFound";
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const SignupPage = lazy(() => import("./pages/SignupPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const Index = lazy(() => import("./pages/Index"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const MyProfilePage = lazy(() => import("./pages/MyProfilePage"));
+const HealthProfilePage = lazy(() => import("./pages/HealthProfilePage"));
+const SymptomsPage = lazy(() => import("./pages/SymptomsPage"));
+const RiskAssessmentPage = lazy(() => import("./pages/RiskAssessmentPage"));
+const PredictionsPage = lazy(() => import("./pages/PredictionsPage"));
+const RecommendationsPage = lazy(() => import("./pages/RecommendationsPage"));
+const ReportsPage = lazy(() => import("./pages/ReportsPage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Admin pages
-import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
-import UsersManagementPage from "./pages/admin/UsersManagementPage";
-import PredictionRecordsPage from "./pages/admin/PredictionRecordsPage";
-import DatasetsPage from "./pages/admin/DatasetsPage";
-import ModelSummaryPage from "./pages/admin/ModelSummaryPage";
+const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"));
+const UsersManagementPage = lazy(() => import("./pages/admin/UsersManagementPage"));
+const PredictionRecordsPage = lazy(() => import("./pages/admin/PredictionRecordsPage"));
+const DatasetsPage = lazy(() => import("./pages/admin/DatasetsPage"));
+const ModelSummaryPage = lazy(() => import("./pages/admin/ModelSummaryPage"));
 
-// ML pages
-import MLModelsPage from "./pages/ml/MLModelsPage";
-import FeatureAnalysisPage from "./pages/ml/FeatureAnalysisPage";
-import ModelTuningPage from "./pages/ml/ModelTuningPage";
+const MLModelsPage = lazy(() => import("./pages/ml/MLModelsPage"));
+const FeatureAnalysisPage = lazy(() => import("./pages/ml/FeatureAnalysisPage"));
+const ModelTuningPage = lazy(() => import("./pages/ml/ModelTuningPage"));
 
 const queryClient = new QueryClient();
 
-function AuthPage({ children }: { children: React.ReactNode }) {
+function PageLoader() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      Loading...
+    </div>
+  );
+}
+
+function AuthPage({ children }: { children: ReactNode }) {
   const { isAuthenticated, isAdmin } = useAuth();
   if (isAuthenticated) {
     return <Navigate to={isAdmin ? "/admin/dashboard" : "/"} replace />;
@@ -61,43 +68,45 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <NotificationsProvider>
-            <Routes>
-              {/* Public auth routes */}
-              <Route path="/login" element={<AuthPage><LoginPage /></AuthPage>} />
-              <Route path="/signup" element={<AuthPage><SignupPage /></AuthPage>} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/" element={<HomeRoute />} />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Public auth routes */}
+                <Route path="/login" element={<AuthPage><LoginPage /></AuthPage>} />
+                <Route path="/signup" element={<AuthPage><SignupPage /></AuthPage>} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/" element={<HomeRoute />} />
 
-              {/* Protected user routes */}
-              <Route path="/dashboard" element={<ProtectedRoute requiredRole="user"><DashboardPage /></ProtectedRoute>} />
-              <Route path="/my-profile" element={<ProtectedRoute><MyProfilePage /></ProtectedRoute>} />
-              <Route path="/health-profile" element={<ProtectedRoute><HealthProfilePage /></ProtectedRoute>} />
-              <Route path="/symptoms" element={<ProtectedRoute><SymptomsPage /></ProtectedRoute>} />
-              <Route path="/risk-assessment" element={<ProtectedRoute><RiskAssessmentPage /></ProtectedRoute>} />
-              <Route path="/predictions" element={<ProtectedRoute><PredictionsPage /></ProtectedRoute>} />
-              <Route path="/recommendations" element={<ProtectedRoute><RecommendationsPage /></ProtectedRoute>} />
-              <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
-              <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+                {/* Protected user routes */}
+                <Route path="/dashboard" element={<ProtectedRoute requiredRole="user"><DashboardPage /></ProtectedRoute>} />
+                <Route path="/my-profile" element={<ProtectedRoute><MyProfilePage /></ProtectedRoute>} />
+                <Route path="/health-profile" element={<ProtectedRoute><HealthProfilePage /></ProtectedRoute>} />
+                <Route path="/symptoms" element={<ProtectedRoute><SymptomsPage /></ProtectedRoute>} />
+                <Route path="/risk-assessment" element={<ProtectedRoute><RiskAssessmentPage /></ProtectedRoute>} />
+                <Route path="/predictions" element={<ProtectedRoute><PredictionsPage /></ProtectedRoute>} />
+                <Route path="/recommendations" element={<ProtectedRoute><RecommendationsPage /></ProtectedRoute>} />
+                <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+                <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
-              {/* Admin routes */}
-              <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="admin"><AdminDashboardPage /></ProtectedRoute>} />
-              <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UsersManagementPage /></ProtectedRoute>} />
-              <Route path="/admin/predictions" element={<ProtectedRoute requiredRole="admin"><PredictionRecordsPage /></ProtectedRoute>} />
-              <Route path="/admin/datasets" element={<ProtectedRoute requiredRole="admin"><DatasetsPage /></ProtectedRoute>} />
-              <Route path="/admin/model-summary" element={<ProtectedRoute requiredRole="admin"><ModelSummaryPage /></ProtectedRoute>} />
+                {/* Admin routes */}
+                <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="admin"><AdminDashboardPage /></ProtectedRoute>} />
+                <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UsersManagementPage /></ProtectedRoute>} />
+                <Route path="/admin/predictions" element={<ProtectedRoute requiredRole="admin"><PredictionRecordsPage /></ProtectedRoute>} />
+                <Route path="/admin/datasets" element={<ProtectedRoute requiredRole="admin"><DatasetsPage /></ProtectedRoute>} />
+                <Route path="/admin/model-summary" element={<ProtectedRoute requiredRole="admin"><ModelSummaryPage /></ProtectedRoute>} />
 
-              {/* ML routes (admin only) */}
-              <Route path="/ml/models" element={<ProtectedRoute requiredRole="admin"><MLModelsPage /></ProtectedRoute>} />
-              <Route path="/ml/features" element={<ProtectedRoute requiredRole="admin"><FeatureAnalysisPage /></ProtectedRoute>} />
-              <Route path="/ml/tuning" element={<ProtectedRoute requiredRole="admin"><ModelTuningPage /></ProtectedRoute>} />
+                {/* ML routes (admin only) */}
+                <Route path="/ml/models" element={<ProtectedRoute requiredRole="admin"><MLModelsPage /></ProtectedRoute>} />
+                <Route path="/ml/features" element={<ProtectedRoute requiredRole="admin"><FeatureAnalysisPage /></ProtectedRoute>} />
+                <Route path="/ml/tuning" element={<ProtectedRoute requiredRole="admin"><ModelTuningPage /></ProtectedRoute>} />
 
-              {/* Legacy admin route redirect */}
-              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+                {/* Legacy admin route redirect */}
+                <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </NotificationsProvider>
         </AuthProvider>
       </BrowserRouter>
