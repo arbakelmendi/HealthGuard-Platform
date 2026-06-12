@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import { ArrowLeft, ArrowRight, HeartPulse, ShieldCheck, Sparkles, Stethoscope, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ const allergyOptions = [
   "Penicillin", "Antibiotics (Other)", "Aspirin", "Ibuprofen / NSAIDs", "Latex",
   "Contrast Dye", "Fragrances / Perfumes", "None", "Other",
 ];
+const duplicateEmailMessage = "This email is already registered. Please sign in or use another email.";
 
 const parseMulti = (value: string) => value ? value.split(", ").filter(Boolean) : [];
 const toggleMultiValue = (current: string, option: string) => {
@@ -267,8 +269,21 @@ export default function SignupPage() {
       toast.success("Account created.");
       navigate("/", { replace: true });
     } catch (err) {
-      console.error("API ERROR:", err);
-      const message = err instanceof Error ? err.message : "Unable to create account.";
+      const isDuplicateEmail = axios.isAxiosError(err) && err.response?.status === 409;
+      const responseMessage = axios.isAxiosError<{ message?: string }>(err)
+        ? err.response?.data?.message
+        : undefined;
+      const message = isDuplicateEmail
+        ? duplicateEmailMessage
+        : responseMessage || "Unable to create account. Please try again.";
+
+      if (isDuplicateEmail) {
+        setStep(1);
+        setAccountSubmitted(true);
+        setTouched((current) => ({ ...current, email: true }));
+        setErrors((current) => ({ ...current, email: duplicateEmailMessage }));
+      }
+
       setApiError(message);
       toast.error(message);
     } finally {
@@ -355,6 +370,8 @@ export default function SignupPage() {
                       value={form.email}
                       onChange={(e) => setField("email", e.target.value)}
                       onBlur={() => markTouched("email")}
+                      aria-invalid={shouldShowError("email")}
+                      className={shouldShowError("email") ? "border-destructive focus-visible:ring-destructive" : undefined}
                     />
                     {shouldShowError("email") && <p className="text-sm text-destructive">{errors.email}</p>}
                   </div>

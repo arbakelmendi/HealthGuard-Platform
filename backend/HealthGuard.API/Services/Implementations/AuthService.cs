@@ -3,6 +3,7 @@ using HealthGuard.API.DTOs.Auth;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
 using HealthGuard.API.Services.Interfaces;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
@@ -49,7 +50,17 @@ public class AuthService : IAuthService
         };
 
         _dbContext.Users.Add(user);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (
+            ex.InnerException is SqlException { Number: 2601 or 2627 })
+        {
+            throw new ApiException(
+                StatusCodes.Status409Conflict,
+                "An account with this email already exists.");
+        }
 
         return await CreateAuthResponseAsync(user, cancellationToken);
     }
@@ -165,7 +176,9 @@ public class AuthService : IAuthService
 
         if (exists)
         {
-            throw new ApiException(StatusCodes.Status409Conflict, "A user with this email already exists.");
+            throw new ApiException(
+                StatusCodes.Status409Conflict,
+                "An account with this email already exists.");
         }
     }
 

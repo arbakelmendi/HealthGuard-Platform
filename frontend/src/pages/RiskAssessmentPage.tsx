@@ -24,13 +24,13 @@ type RiskResult = {
 };
 
 type ValidationErrors = Record<string, string[]>;
+type RequiredMeasurement = "systolicBp" | "diastolicBp" | "bloodSugar" | "cholesterol";
 
-const parseBloodPressure = (bloodPressure: string) => {
-  const match = bloodPressure?.match(/^(\d{2,3})\s*\/\s*(\d{2,3})$/);
-  return {
-    systolicBp: match ? Number(match[1]) : 0,
-    diastolicBp: match ? Number(match[2]) : 0,
-  };
+const requiredMeasurementErrors: Record<RequiredMeasurement, string> = {
+  systolicBp: "Systolic blood pressure is required",
+  diastolicBp: "Diastolic blood pressure is required",
+  bloodSugar: "Blood sugar is required",
+  cholesterol: "Cholesterol is required",
 };
 
 export default function RiskAssessmentPage() {
@@ -42,15 +42,16 @@ export default function RiskAssessmentPage() {
   const [latestRecord, setLatestRecord] = useState<HealthRecordResponse | null>(null);
   const [recentSymptoms, setRecentSymptoms] = useState<SymptomLog[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
+  const [touchedMeasurements, setTouchedMeasurements] = useState<Partial<Record<RequiredMeasurement, boolean>>>({});
   const [form, setForm] = useState({
     age: user?.age?.toString() ?? "32",
     gender: user?.gender ?? "female",
     heightCm: user?.height?.toString() ?? "170",
     weightKg: user?.weight?.toString() ?? "76",
-    systolicBp: "130",
-    diastolicBp: "85",
-    bloodSugar: "110",
-    cholesterol: "210",
+    systolicBp: "",
+    diastolicBp: "",
+    bloodSugar: "",
+    cholesterol: "",
     activityLevel: user?.activityLevel?.toLowerCase() ?? "low",
     sleepHours: "6.5",
     stressLevel: "5",
@@ -63,17 +64,16 @@ export default function RiskAssessmentPage() {
 
     healthRecordsApi.getLatestHealthRecord(Number(user.id))
       .then((record) => {
-        const parsedBp = parseBloodPressure(record.bloodPressure);
         setLatestRecord(record);
         setForm({
           age: String(record.age),
           gender: record.gender || "female",
           heightCm: String(record.heightCm || record.height),
           weightKg: String(record.weightKg || record.weight),
-          systolicBp: String(record.systolicBp || parsedBp.systolicBp || 120),
-          diastolicBp: String(record.diastolicBp || parsedBp.diastolicBp || 80),
-          bloodSugar: String(record.bloodSugar || record.glucose),
-          cholesterol: String(record.cholesterol || 190),
+          systolicBp: "",
+          diastolicBp: "",
+          bloodSugar: "",
+          cholesterol: "",
           activityLevel: record.activityLevel?.toLowerCase() || "low",
           sleepHours: String(record.sleepHours || 7),
           stressLevel: String(record.stressLevel || 4),
@@ -100,13 +100,43 @@ export default function RiskAssessmentPage() {
   const updateField = (field: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
     setHasChanges(true);
+    setValidationErrors((current) => {
+      const next = { ...current };
+      delete next[field];
+      delete next[`${field[0].toUpperCase()}${field.slice(1)}`];
+      return next;
+    });
   };
 
   const fieldError = (field: string) => validationErrors[field]?.[0] ?? validationErrors[`$.${field}`]?.[0];
+  const requiredMeasurementError = (field: RequiredMeasurement) =>
+    !form[field].trim() && touchedMeasurements[field] ? requiredMeasurementErrors[field] : "";
+  const measurementsComplete = Object.keys(requiredMeasurementErrors)
+    .every((field) => form[field as RequiredMeasurement].trim());
+
+  const markMeasurementTouched = (field: RequiredMeasurement) => {
+    setTouchedMeasurements((current) => ({ ...current, [field]: true }));
+  };
 
   const runPrediction = async () => {
     if (!user?.id) {
       toast.error("Please sign in before running a prediction.");
+      return;
+    }
+
+    const requiredFields = Object.keys(requiredMeasurementErrors) as RequiredMeasurement[];
+    setTouchedMeasurements(requiredFields.reduce((current, field) => ({ ...current, [field]: true }), {}));
+
+    const missingErrors = requiredFields.reduce<ValidationErrors>((current, field) => {
+      if (!form[field].trim()) {
+        const apiField = `${field[0].toUpperCase()}${field.slice(1)}`;
+        current[apiField] = [requiredMeasurementErrors[field]];
+      }
+      return current;
+    }, {});
+
+    if (Object.keys(missingErrors).length > 0) {
+      setValidationErrors(missingErrors);
       return;
     }
 
@@ -206,23 +236,55 @@ export default function RiskAssessmentPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Systolic BP</Label>
-                  <Input type="number" value={form.systolicBp} onChange={(e) => updateField("systolicBp", e.target.value)} />
-                  {fieldError("SystolicBp") && <p className="text-xs text-health-danger">{fieldError("SystolicBp")}</p>}
+                  <Input
+                    type="number"
+                    value={form.systolicBp}
+                    placeholder="Enter systolic blood pressure"
+                    onChange={(e) => updateField("systolicBp", e.target.value)}
+                    onBlur={() => markMeasurementTouched("systolicBp")}
+                    aria-invalid={Boolean(requiredMeasurementError("systolicBp") || fieldError("SystolicBp"))}
+                    className={requiredMeasurementError("systolicBp") || fieldError("SystolicBp") ? "border-destructive focus-visible:ring-destructive" : undefined}
+                  />
+                  {(requiredMeasurementError("systolicBp") || fieldError("SystolicBp")) && <p className="text-xs text-health-danger">{requiredMeasurementError("systolicBp") || fieldError("SystolicBp")}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Diastolic BP</Label>
-                  <Input type="number" value={form.diastolicBp} onChange={(e) => updateField("diastolicBp", e.target.value)} />
-                  {fieldError("DiastolicBp") && <p className="text-xs text-health-danger">{fieldError("DiastolicBp")}</p>}
+                  <Input
+                    type="number"
+                    value={form.diastolicBp}
+                    placeholder="Enter diastolic blood pressure"
+                    onChange={(e) => updateField("diastolicBp", e.target.value)}
+                    onBlur={() => markMeasurementTouched("diastolicBp")}
+                    aria-invalid={Boolean(requiredMeasurementError("diastolicBp") || fieldError("DiastolicBp"))}
+                    className={requiredMeasurementError("diastolicBp") || fieldError("DiastolicBp") ? "border-destructive focus-visible:ring-destructive" : undefined}
+                  />
+                  {(requiredMeasurementError("diastolicBp") || fieldError("DiastolicBp")) && <p className="text-xs text-health-danger">{requiredMeasurementError("diastolicBp") || fieldError("DiastolicBp")}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Blood Sugar</Label>
-                  <Input type="number" value={form.bloodSugar} onChange={(e) => updateField("bloodSugar", e.target.value)} />
-                  {fieldError("BloodSugar") && <p className="text-xs text-health-danger">{fieldError("BloodSugar")}</p>}
+                  <Input
+                    type="number"
+                    value={form.bloodSugar}
+                    placeholder="Enter blood sugar level"
+                    onChange={(e) => updateField("bloodSugar", e.target.value)}
+                    onBlur={() => markMeasurementTouched("bloodSugar")}
+                    aria-invalid={Boolean(requiredMeasurementError("bloodSugar") || fieldError("BloodSugar"))}
+                    className={requiredMeasurementError("bloodSugar") || fieldError("BloodSugar") ? "border-destructive focus-visible:ring-destructive" : undefined}
+                  />
+                  {(requiredMeasurementError("bloodSugar") || fieldError("BloodSugar")) && <p className="text-xs text-health-danger">{requiredMeasurementError("bloodSugar") || fieldError("BloodSugar")}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Cholesterol</Label>
-                  <Input type="number" value={form.cholesterol} onChange={(e) => updateField("cholesterol", e.target.value)} />
-                  {fieldError("Cholesterol") && <p className="text-xs text-health-danger">{fieldError("Cholesterol")}</p>}
+                  <Input
+                    type="number"
+                    value={form.cholesterol}
+                    placeholder="Enter cholesterol level"
+                    onChange={(e) => updateField("cholesterol", e.target.value)}
+                    onBlur={() => markMeasurementTouched("cholesterol")}
+                    aria-invalid={Boolean(requiredMeasurementError("cholesterol") || fieldError("Cholesterol"))}
+                    className={requiredMeasurementError("cholesterol") || fieldError("Cholesterol") ? "border-destructive focus-visible:ring-destructive" : undefined}
+                  />
+                  {(requiredMeasurementError("cholesterol") || fieldError("Cholesterol")) && <p className="text-xs text-health-danger">{requiredMeasurementError("cholesterol") || fieldError("Cholesterol")}</p>}
                 </div>
               </div>
               <div className="space-y-2">
@@ -286,7 +348,7 @@ export default function RiskAssessmentPage() {
                   </div>
                 </div>
               )}
-              <Button onClick={runPrediction} disabled={loading} className="w-full gradient-primary text-primary-foreground">
+              <Button onClick={runPrediction} disabled={loading || !measurementsComplete} className="w-full gradient-primary text-primary-foreground">
                 {loading ? (
                   <span className="flex items-center gap-2"><Zap className="w-4 h-4 animate-pulse-glow" /> Analyzing...</span>
                 ) : (

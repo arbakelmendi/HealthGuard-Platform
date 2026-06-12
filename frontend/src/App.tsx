@@ -70,6 +70,7 @@ const App = () => (
               <Route path="/" element={<HomeRoute />} />
 
               {/* Protected user routes */}
+              <Route path="/dashboard" element={<ProtectedRoute requiredRole="user"><DashboardPage /></ProtectedRoute>} />
               <Route path="/my-profile" element={<ProtectedRoute><MyProfilePage /></ProtectedRoute>} />
               <Route path="/health-profile" element={<ProtectedRoute><HealthProfilePage /></ProtectedRoute>} />
               <Route path="/symptoms" element={<ProtectedRoute><SymptomsPage /></ProtectedRoute>} />

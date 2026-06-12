@@ -304,21 +304,25 @@ public class PredictionsController : ControllerBase
         AddRequiredError(errors, nameof(request.Gender), request.Gender);
         AddRequiredError(errors, nameof(request.HeightCm), request.HeightCm);
         AddRequiredError(errors, nameof(request.WeightKg), request.WeightKg);
-        AddRequiredError(errors, nameof(request.SystolicBp), request.SystolicBp);
-        AddRequiredError(errors, nameof(request.DiastolicBp), request.DiastolicBp);
-        AddRequiredError(errors, nameof(request.BloodSugar), request.BloodSugar);
-        AddRequiredError(errors, nameof(request.Cholesterol), request.Cholesterol);
+        AddRequiredError(errors, nameof(request.SystolicBp), request.SystolicBp, "Systolic blood pressure is required");
+        AddRequiredError(errors, nameof(request.DiastolicBp), request.DiastolicBp, "Diastolic blood pressure is required");
+        AddRequiredError(errors, nameof(request.BloodSugar), request.BloodSugar, "Blood sugar is required");
+        AddRequiredError(errors, nameof(request.Cholesterol), request.Cholesterol, "Cholesterol is required");
         AddRequiredError(errors, nameof(request.SleepHours), request.SleepHours);
         AddRequiredError(errors, nameof(request.StressLevel), request.StressLevel);
 
         return errors;
     }
 
-    private static void AddRequiredError<T>(Dictionary<string, string[]> errors, string field, T? value)
+    private static void AddRequiredError<T>(
+        Dictionary<string, string[]> errors,
+        string field,
+        T? value,
+        string? message = null)
     {
         if (value is null || value is string text && string.IsNullOrWhiteSpace(text))
         {
-            errors[field] = new[] { $"{field} is required for prediction." };
+            errors[field] = new[] { message ?? $"{field} is required for prediction." };
         }
     }
 
