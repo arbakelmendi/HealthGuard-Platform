@@ -10,7 +10,7 @@ namespace HealthGuard.API.Controllers;
 
 [ApiController]
 [Route("api/dashboard")]
-[Authorize(Roles = UserRoles.User)]
+[Authorize]
 public class DashboardController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;
@@ -21,6 +21,7 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("me")]
+    [Authorize(Roles = UserRoles.User)]
     public async Task<ActionResult<DashboardDto>> GetMine(CancellationToken cancellationToken)
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -30,5 +31,12 @@ public class DashboardController : ControllerBase
         }
 
         return Ok(await _dashboardService.GetMineAsync(userId, cancellationToken));
+    }
+
+    [HttpGet("admin")]
+    [Authorize(Roles = UserRoles.Admin)]
+    public async Task<ActionResult<AdminDashboardDto>> GetAdmin(CancellationToken cancellationToken)
+    {
+        return Ok(await _dashboardService.GetAdminAsync(cancellationToken));
     }
 }

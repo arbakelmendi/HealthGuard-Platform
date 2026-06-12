@@ -8,3 +8,8 @@ __pycache__/
 # Virtual environments
 venv/
 healthguard_tf/
+**/bin/
+**/obj/
+*.dll
+*.exe
+*.pdb

@@ -4,6 +4,7 @@ using HealthGuard.API.DTOs.Common;
 using HealthGuard.API.DTOs.Symptoms;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
+using HealthGuard.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,10 +25,14 @@ public class SymptomsController : ControllerBase
     };
 
     private readonly ApplicationDbContext _dbContext;
+    private readonly IRealtimeNotificationService _realtimeNotificationService;
 
-    public SymptomsController(ApplicationDbContext dbContext)
+    public SymptomsController(
+        ApplicationDbContext dbContext,
+        IRealtimeNotificationService realtimeNotificationService)
     {
         _dbContext = dbContext;
+        _realtimeNotificationService = realtimeNotificationService;
     }
 
     [HttpGet("me")]
@@ -89,8 +94,14 @@ public class SymptomsController : ControllerBase
         };
 
         _dbContext.SymptomLogs.Add(symptom);
-        await AddSymptomNotificationIfMissingAsync(symptom, cancellationToken);
+        var notification = await AddSymptomNotificationIfMissingAsync(symptom, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        if (notification is not null)
+        {
+            await _realtimeNotificationService.SendNotificationAsync(notification, cancellationToken);
+        }
+
         await UpdateLatestHealthRecordSymptomsAsync(userId, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -164,7 +175,9 @@ public class SymptomsController : ControllerBase
         latestRecord.Symptoms = string.Join(", ", recentSymptoms);
     }
 
-    private async Task AddSymptomNotificationIfMissingAsync(SymptomLog symptom, CancellationToken cancellationToken)
+    private async Task<Notification?> AddSymptomNotificationIfMissingAsync(
+        SymptomLog symptom,
+        CancellationToken cancellationToken)
     {
         var severe = symptom.Severity.Equals("Severe", StringComparison.OrdinalIgnoreCase)
             || symptom.Severity.Equals("Critical", StringComparison.OrdinalIgnoreCase);
@@ -183,10 +196,10 @@ public class SymptomsController : ControllerBase
 
         if (exists)
         {
-            return;
+            return null;
         }
 
-        _dbContext.Notifications.Add(new Notification
+        var notification = new Notification
         {
             UserId = symptom.UserId,
             Title = title,
@@ -194,7 +207,10 @@ public class SymptomsController : ControllerBase
             Type = severe ? NotificationTypes.Alert : NotificationTypes.Info,
             Source = NotificationSources.System,
             CreatedAt = DateTime.UtcNow
-        });
+        };
+
+        _dbContext.Notifications.Add(notification);
+        return notification;
     }
 
     private int GetCurrentUserId()
