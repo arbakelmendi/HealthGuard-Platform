@@ -14,7 +14,8 @@
 | Explainable AI and interpretability | Done | `ml/notebooks/healthguard_ml.ipynb` sections `Feature Importance and Top Predictive Health Indicators` and `SHAP Interpretation Summary and Local Explanations`; outputs in `ml/results/feature_importance.csv`, `ml/results/top_predictive_health_indicators.csv`, `ml/results/shap_interpretation_summary.csv`, and `ml/results/plots` |
 | Evaluation metrics | Done | `ml/notebooks/healthguard_ml.ipynb` sections `Final Model Comparison`, `Cross-Validation Stability`, `ROC-AUC Evaluation`, and confusion-matrix sections; outputs in `ml/results/final_model_results.csv`, `ml/results/cross_validation_results.csv`, and `ml/results/roc_curves.png` |
 | Comparison table | Done | `ml/results/final_model_results.csv`; `ml/model_comparison_results.json`; `ml/notebooks/healthguard_ml.ipynb` section `Final Model Comparison`; this document section `Hyperparameter Tuning Summary` |
-| Clustering | Done | `ml/notebooks/healthguard_ml.ipynb` section `Clustering Analysis`; target removed before K-Means; tests `k=2..10`; uses Elbow Method, Silhouette Score, PCA, ARI and NMI; outputs in `ml/results/clustering_evaluation.csv` and `ml/results/plots` |
+| Clustering | Done | `ml/notebooks/healthguard_ml.ipynb` section `Clustering Analysis`; target removed before K-Means; tests `k=2..10`; uses Elbow Method, Silhouette Score, PCA, ARI, NMI and cluster-class match score; outputs in `ml/results/clustering_evaluation.csv`, `ml/results/cluster_class_summary.csv` and `ml/results/plots` |
+| Report-style notebook sections | Done | `ml/notebooks/healthguard_ml.ipynb` sections `Introduction`, `Dataset Description`, `Methodology`, `Results`, `Discussion`, `Conclusion`, `References`, and `Final Course Requirements Checklist` |
 | README and requirements.txt | Done | `README.md`, `ml/README.md`, and `ml/requirements.txt`; setup covers virtual environment, dependency installation, notebook execution, dataset location, results location, and platform integration |
 
 ## Reproducibility Improvements
@@ -49,7 +50,7 @@ Each team member should be ready to explain one part of the ML workflow clearly 
 - Model training member: explain the 80/20 stratified train/test split, the four classical classifiers, why F1-score was used for tuning, what `GridSearchCV` tested, and why final test metrics are lower and more realistic than perfect scores.
 - Neural network member: explain both architectures, the role of ReLU, sigmoid output, binary cross-entropy, Adam optimizer and dropout, and compare neural network performance with the classical models.
 - Feature selection and explainability member: explain `SelectKBest`, the Top 10 and Top 5 feature experiments, feature importance, local patient explanations, and why simpler feature sets can improve interpretability but must still be validated.
-- Clustering member: explain that the target label was removed before K-Means, why multiple `k` values were tested, how the Elbow Method and Silhouette Score were used, what PCA shows, and how ARI/NMI compare clusters with true labels only after clustering.
+- Clustering member: explain that the target label was removed before K-Means, why multiple `k` values were tested, how the Elbow Method and Silhouette Score were used, what PCA shows, and how ARI, NMI and cluster-class match score compare clusters with true labels only after clustering.
 - Platform integration member: explain how `ml/models/logistic_model.pkl` and `ml/models/scaler.pkl` support the FastAPI prediction service in `ml/api/app.py`, how `ml/model_comparison_results.json` powers the HealthGuard backend/admin model summary, and where plots/reports are saved under `ml/results`.
 
 ## Dataset Description

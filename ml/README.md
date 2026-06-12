@@ -65,7 +65,7 @@ The models were evaluated using:
 ## Clustering
 
 K-Means clustering was also applied after removing the target variable.  
-The notebook tests multiple `k` values, uses the Elbow Method and Silhouette Score to evaluate cluster quality, and compares the selected clusters with the true labels using Adjusted Rand Index (ARI) and Normalized Mutual Information (NMI). PCA was used to visualize the clustering results in 2D.
+The notebook tests multiple `k` values, uses the Elbow Method and Silhouette Score to evaluate cluster quality, and compares the selected clusters with the true labels using Adjusted Rand Index (ARI), Normalized Mutual Information (NMI), and a cluster-class match score. PCA was used to visualize the clustering results in 2D.
 
 ## Saved Model
 
@@ -113,6 +113,21 @@ ml/model_comparison_results.json
 ```
 
 The backend uses this JSON file for the admin model summary and report pages.
+
+## Course Requirement Alignment
+
+The notebook includes report-style Markdown sections for:
+
+- Introduction
+- Dataset Description
+- Methodology
+- Results
+- Discussion
+- Conclusion
+- References
+- Final Course Requirements Checklist
+
+The final checklist in `ml/notebooks/healthguard_ml.ipynb` maps each course requirement to the implemented notebook section or exported output. A project-level checklist is also maintained in `ml/results/PROJECT_ML_SUMMARY.md`.
 
 ## Setup
 
