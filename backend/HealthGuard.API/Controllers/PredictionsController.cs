@@ -20,17 +20,20 @@ public class PredictionsController : ControllerBase
     private readonly IApplicationDataService _dataService;
     private readonly HealthRiskPredictionService _predictionService;
     private readonly MachineLearningPredictionService _machineLearningPredictionService;
+    private readonly IPredictionHistoryService _predictionHistoryService;
     private readonly IRealtimeNotificationService _realtimeNotificationService;
 
     public PredictionsController(
         IApplicationDataService dataService,
         HealthRiskPredictionService predictionService,
         MachineLearningPredictionService machineLearningPredictionService,
+        IPredictionHistoryService predictionHistoryService,
         IRealtimeNotificationService realtimeNotificationService)
     {
         _dataService = dataService;
         _predictionService = predictionService;
         _machineLearningPredictionService = machineLearningPredictionService;
+        _predictionHistoryService = predictionHistoryService;
         _realtimeNotificationService = realtimeNotificationService;
     }
 
@@ -110,6 +113,7 @@ public class PredictionsController : ControllerBase
         _dataService.Add(result);
         await _dataService.SaveChangesAsync(cancellationToken);
 
+        await _predictionHistoryService.RefreshAsync(result.UserId, cancellationToken);
         await CreatePredictionNotificationsAsync(result, cancellationToken);
 
         return Ok(ToResponse(result));
@@ -126,27 +130,15 @@ public class PredictionsController : ControllerBase
     {
         EnsureCanAccessUser(userId);
 
-        var query = _dataService.Query<PredictionResult>(true)
-            .Include(prediction => prediction.HealthRecord)
-            .Where(prediction => prediction.UserId == userId);
+        var predictions = await _predictionHistoryService.GetByUserAsync(
+            userId,
+            riskLevel,
+            search,
+            sortBy,
+            sortDirection,
+            cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(riskLevel))
-        {
-            query = query.Where(prediction => prediction.RiskLevel == riskLevel);
-        }
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var term = search.Trim();
-            query = query.Where(prediction => prediction.Explanation.Contains(term) || prediction.ModelName.Contains(term));
-        }
-
-        query = ApplyPredictionSort(query, sortBy, sortDirection);
-
-        var predictions = await query
-            .ToListAsync(cancellationToken);
-
-        return Ok(predictions.Select(ToResponse).ToList());
+        return Ok(predictions);
     }
 
     [HttpGet("{id:int}")]

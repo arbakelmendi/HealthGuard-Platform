@@ -58,9 +58,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         connectionString,
         sql => sql.EnableRetryOnFailure()));
 
-var redisConnectionString = builder.Configuration["Redis:ConnectionString"]
-    ?? throw new InvalidOperationException(
-        "Redis connection string is missing. Set Redis__ConnectionString in the environment or .env file.");
+var redisConnectionString = builder.Configuration["REDIS_CONNECTION"]
+    ?? builder.Configuration["Redis:ConnectionString"]
+    ?? "localhost:6379";
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 {
     var options = ConfigurationOptions.Parse(redisConnectionString);
@@ -128,6 +128,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IPredictionHistoryService, PredictionHistoryService>();
 builder.Services.AddScoped<IRealtimeNotificationService, RealtimeNotificationService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();

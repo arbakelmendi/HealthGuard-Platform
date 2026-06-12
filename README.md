@@ -45,8 +45,8 @@ docker run --name healthguard-redis -p 6379:6379 -d redis
 Configure Redis with either an environment variable or a user secret:
 
 ```powershell
-$env:Redis__ConnectionString = "localhost:6379"
-dotnet user-secrets set "Redis:ConnectionString" "localhost:6379" --project backend/HealthGuard.API
+$env:REDIS_CONNECTION = "localhost:6379"
+dotnet user-secrets set "REDIS_CONNECTION" "localhost:6379" --project backend/HealthGuard.API
 ```
 
 5. Run the API:
@@ -65,7 +65,7 @@ Redis is the platform's NoSQL integration. It is used only for:
 
 - Five-minute user and admin dashboard summary caches
 - Per-user unread notification counts
-- Recent per-user real-time notification payloads
+- Five-minute per-user prediction history caches
 - Fast cache reads with automatic fallback to MSSQL
 
 Redis unavailability does not replace or interrupt MSSQL persistence. Redis errors are logged, cache reads fall back to SQL queries, and API requests continue using the relational database.
@@ -74,7 +74,7 @@ Required backend environment variables:
 
 ```text
 ConnectionStrings__DefaultConnection=Server=localhost;Database=HealthGuardDb;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False;
-Redis__ConnectionString=localhost:6379
+REDIS_CONNECTION=localhost:6379
 Jwt__Key=replace-with-a-long-random-secret-at-least-32-chars
 ```
 
@@ -102,6 +102,48 @@ Apply migrations manually if needed:
 ```powershell
 dotnet ef database update --project backend/HealthGuard.API
 ```
+
+## Redis / NoSQL Integration
+
+Redis is the NoSQL database used as a cache layer. SQL Server remains the source of truth, and no application data is stored only in Redis.
+
+The backend uses `StackExchange.Redis` through dependency injection and the `IRedisCacheService` abstraction. Cached values are serialized as JSON. The cache service supports:
+
+- `SetAsync` to store an object with an optional expiration
+- `GetAsync` to deserialize a cached object
+- `RemoveAsync` to invalidate a cache entry
+
+Redis is used by these modules:
+
+- Dashboard: user and admin dashboard statistics are cached for five minutes. A cache miss loads the data from SQL Server and stores the result in Redis.
+- Notifications: unread counts are cached per user. The count and affected user dashboard cache are invalidated whenever a notification is created or marked as read.
+- Predictions: each user's prediction history is cached for five minutes. After a new prediction is committed to SQL Server, the history cache is rebuilt and dashboard caches are invalidated.
+
+Redis failures are logged and treated as cache misses. Reads continue from SQL Server, and failed cache writes or invalidations do not fail the API request.
+
+Copy the backend environment template and configure the connection:
+
+```powershell
+Copy-Item backend/HealthGuard.API/.env.example backend/HealthGuard.API/.env
+```
+
+```text
+REDIS_CONNECTION=localhost:6379
+```
+
+Run Redis locally with Docker:
+
+```powershell
+docker run --name healthguard-redis -p 6379:6379 -d redis:7-alpine
+```
+
+For an existing stopped container:
+
+```powershell
+docker start healthguard-redis
+```
+
+The API defaults to `localhost:6379` when `REDIS_CONNECTION` is not set. The legacy `Redis__ConnectionString` configuration key is also accepted for compatibility.
 
 ## Frontend Setup
 
