@@ -1,7 +1,7 @@
 using HealthGuard.API.DTOs.Notifications;
-using HealthGuard.API.Data;
 using HealthGuard.API.Hubs;
 using HealthGuard.API.Models;
+using HealthGuard.API.Repositories.Interfaces;
 using HealthGuard.API.Services.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -11,16 +11,16 @@ namespace HealthGuard.API.Services.Implementations;
 public class RealtimeNotificationService : IRealtimeNotificationService
 {
     private readonly IHubContext<NotificationsHub> _hubContext;
-    private readonly ApplicationDbContext _dbContext;
+    private readonly INotificationRepository _notificationRepository;
     private readonly IRedisCacheService _redisCacheService;
 
     public RealtimeNotificationService(
         IHubContext<NotificationsHub> hubContext,
-        ApplicationDbContext dbContext,
+        INotificationRepository notificationRepository,
         IRedisCacheService redisCacheService)
     {
         _hubContext = hubContext;
-        _dbContext = dbContext;
+        _notificationRepository = notificationRepository;
         _redisCacheService = redisCacheService;
     }
 
@@ -40,8 +40,7 @@ public class RealtimeNotificationService : IRealtimeNotificationService
             ReadAt = notification.ReadAt
         };
 
-        var unreadCount = await _dbContext.Notifications
-            .AsNoTracking()
+        var unreadCount = await _notificationRepository.Query(true)
             .CountAsync(
                 item => item.UserId == notification.UserId && !item.IsRead,
                 cancellationToken);

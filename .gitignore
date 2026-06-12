@@ -13,3 +13,9 @@ healthguard_tf/
 *.dll
 *.exe
 *.pdb
+
+# Local environment secrets
+.env
+**/.env
+!.env.example
+!**/.env.example

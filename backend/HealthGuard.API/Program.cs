@@ -1,8 +1,12 @@
 using System.Text;
+using HealthGuard.API.Configuration;
 using HealthGuard.API.Data;
 using HealthGuard.API.Hubs;
 using HealthGuard.API.Middleware;
+using HealthGuard.API.Models;
 using HealthGuard.API.Options;
+using HealthGuard.API.Repositories.Implementations;
+using HealthGuard.API.Repositories.Interfaces;
 using HealthGuard.API.Seed;
 using HealthGuard.API.Services.Implementations;
 using HealthGuard.API.Services.Interfaces;
@@ -19,6 +23,7 @@ builder.Configuration.Sources.Clear();
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddDotEnvFile(Path.Combine(builder.Environment.ContentRootPath, ".env"))
     .AddEnvironmentVariables();
 
 builder.Services.AddControllers()
@@ -45,16 +50,17 @@ builder.Services.AddSignalR();
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("DefaultConnection is missing.");
-
-Console.WriteLine("ACTIVE DB: " + connectionString);
+    ?? throw new InvalidOperationException(
+        "DefaultConnection is missing. Set ConnectionStrings__DefaultConnection in the environment or .env file.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         connectionString,
         sql => sql.EnableRetryOnFailure()));
 
-var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
+var redisConnectionString = builder.Configuration["Redis:ConnectionString"]
+    ?? throw new InvalidOperationException(
+        "Redis connection string is missing. Set Redis__ConnectionString in the environment or .env file.");
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 {
     var options = ConfigurationOptions.Parse(redisConnectionString);
@@ -65,6 +71,15 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
     return ConnectionMultiplexer.Connect(options);
 });
 builder.Services.AddSingleton<IRedisCacheService, RedisCacheService>();
+
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IPredictionRepository, PredictionRepository>();
+builder.Services.AddScoped<ISymptomRepository, SymptomRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<ISettingsRepository, SettingsRepository>();
+builder.Services.AddScoped<IApplicationDataService, ApplicationDataService>();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("JWT settings are missing.");
@@ -125,6 +140,7 @@ builder.Services.AddHttpClient<MachineLearningPredictionService>(client =>
     client.Timeout = TimeSpan.FromSeconds(5);
 });
 builder.Services.AddScoped<AdminSeeder>();
+builder.Services.AddScoped<SecuritySeeder>();
 
 builder.Services.AddCors(options =>
 {
@@ -189,6 +205,9 @@ using (var scope = app.Services.CreateScope())
     var dbContext = services.GetRequiredService<ApplicationDbContext>();
     dbContext.Database.Migrate();
 
+    var securitySeeder = services.GetRequiredService<SecuritySeeder>();
+    await securitySeeder.SeedAsync();
+
     var seeder = services.GetRequiredService<AdminSeeder>();
     await seeder.SeedAsync();
 }
@@ -197,6 +216,7 @@ app.UseHttpsRedirection();
 app.UseCors("HealthGuardFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<AuditLogMiddleware>();
 app.MapControllers();
 app.MapHub<NotificationsHub>("/hubs/notifications");
 

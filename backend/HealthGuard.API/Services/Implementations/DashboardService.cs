@@ -1,8 +1,8 @@
 using System.Text.Json;
-using HealthGuard.API.Data;
 using HealthGuard.API.DTOs.Dashboard;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
+using HealthGuard.API.Repositories.Interfaces;
 using HealthGuard.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,14 +11,29 @@ namespace HealthGuard.API.Services.Implementations;
 public class DashboardService : IDashboardService
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IUserRepository _userRepository;
+    private readonly IRepository<HealthRecord> _healthRecordRepository;
+    private readonly IPredictionRepository _predictionRepository;
+    private readonly ISymptomRepository _symptomRepository;
+    private readonly IRepository<Recommendation> _recommendationRepository;
+    private readonly INotificationRepository _notificationRepository;
     private readonly IRedisCacheService _redisCacheService;
 
     public DashboardService(
-        ApplicationDbContext dbContext,
+        IUserRepository userRepository,
+        IRepository<HealthRecord> healthRecordRepository,
+        IPredictionRepository predictionRepository,
+        ISymptomRepository symptomRepository,
+        IRepository<Recommendation> recommendationRepository,
+        INotificationRepository notificationRepository,
         IRedisCacheService redisCacheService)
     {
-        _dbContext = dbContext;
+        _userRepository = userRepository;
+        _healthRecordRepository = healthRecordRepository;
+        _predictionRepository = predictionRepository;
+        _symptomRepository = symptomRepository;
+        _recommendationRepository = recommendationRepository;
+        _notificationRepository = notificationRepository;
         _redisCacheService = redisCacheService;
     }
 
@@ -31,8 +46,7 @@ public class DashboardService : IDashboardService
             return cachedDashboard;
         }
 
-        var user = await _dbContext.Users
-            .AsNoTracking()
+        var user = await _userRepository.Query(true)
             .FirstOrDefaultAsync(item => item.Id == userId && item.IsActive, cancellationToken);
 
         if (user is null)
@@ -40,43 +54,37 @@ public class DashboardService : IDashboardService
             throw new ApiException(StatusCodes.Status404NotFound, "User not found.");
         }
 
-        var records = await _dbContext.HealthRecords
-            .AsNoTracking()
+        var records = await _healthRecordRepository.Query(true)
             .Where(item => item.UserId == userId)
             .OrderByDescending(item => item.CreatedAt)
             .Take(7)
             .ToListAsync(cancellationToken);
 
-        var predictions = await _dbContext.PredictionResults
-            .AsNoTracking()
+        var predictions = await _predictionRepository.Query(true)
             .Where(item => item.UserId == userId)
             .OrderByDescending(item => item.CreatedAt)
             .Take(7)
             .ToListAsync(cancellationToken);
 
-        var symptoms = await _dbContext.SymptomLogs
-            .AsNoTracking()
+        var symptoms = await _symptomRepository.Query(true)
             .Where(item => item.UserId == userId)
             .OrderByDescending(item => item.CreatedAt)
             .Take(5)
             .ToListAsync(cancellationToken);
 
-        var recommendations = await _dbContext.Recommendations
-            .AsNoTracking()
+        var recommendations = await _recommendationRepository.Query(true)
             .Where(item => item.UserId == userId)
             .OrderByDescending(item => item.CreatedAt)
             .Take(3)
             .ToListAsync(cancellationToken);
 
-        var notifications = await _dbContext.Notifications
-            .AsNoTracking()
+        var notifications = await _notificationRepository.Query(true)
             .Where(item => item.UserId == userId)
             .OrderByDescending(item => item.CreatedAt)
             .Take(4)
             .ToListAsync(cancellationToken);
 
-        var unreadNotifications = await _dbContext.Notifications
-            .AsNoTracking()
+        var unreadNotifications = await _notificationRepository.Query(true)
             .CountAsync(item => item.UserId == userId && !item.IsRead, cancellationToken);
 
         var latestRecord = records.FirstOrDefault();
@@ -146,11 +154,10 @@ public class DashboardService : IDashboardService
 
         var dashboard = new AdminDashboardDto
         {
-            TotalUsers = await _dbContext.Users.AsNoTracking().CountAsync(cancellationToken),
-            TotalHealthRecords = await _dbContext.HealthRecords.AsNoTracking().CountAsync(cancellationToken),
-            TotalPredictions = await _dbContext.PredictionResults.AsNoTracking().CountAsync(cancellationToken),
-            HighRiskCases = await _dbContext.PredictionResults
-                .AsNoTracking()
+            TotalUsers = await _userRepository.Query(true).CountAsync(cancellationToken),
+            TotalHealthRecords = await _healthRecordRepository.Query(true).CountAsync(cancellationToken),
+            TotalPredictions = await _predictionRepository.Query(true).CountAsync(cancellationToken),
+            HighRiskCases = await _predictionRepository.Query(true)
                 .CountAsync(
                     prediction => prediction.RiskLevel == "High" || prediction.RiskScore >= 70,
                     cancellationToken),

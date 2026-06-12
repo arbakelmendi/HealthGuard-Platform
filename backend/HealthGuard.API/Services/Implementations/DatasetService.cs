@@ -1,7 +1,7 @@
-using HealthGuard.API.Data;
 using HealthGuard.API.DTOs.Datasets;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
+using HealthGuard.API.Repositories.Interfaces;
 using HealthGuard.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,12 +10,12 @@ namespace HealthGuard.API.Services.Implementations;
 public class DatasetService : IDatasetService
 {
     private const long MaxUploadBytes = 10 * 1024 * 1024;
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IRepository<MlDataset> _datasetRepository;
     private readonly IWebHostEnvironment _environment;
 
-    public DatasetService(ApplicationDbContext dbContext, IWebHostEnvironment environment)
+    public DatasetService(IRepository<MlDataset> datasetRepository, IWebHostEnvironment environment)
     {
-        _dbContext = dbContext;
+        _datasetRepository = datasetRepository;
         _environment = environment;
     }
 
@@ -34,8 +34,7 @@ public class DatasetService : IDatasetService
         page = Math.Max(page, 1);
         pageSize = pageSize is < 1 or > 100 ? 10 : pageSize;
 
-        var query = _dbContext.MlDatasets
-            .AsNoTracking()
+        var query = _datasetRepository.Query(true)
             .Include(dataset => dataset.UploadedByUser)
             .AsQueryable();
 
@@ -78,8 +77,7 @@ public class DatasetService : IDatasetService
     {
         await EnsureHeartDatasetRegisteredAsync(cancellationToken);
 
-        var dataset = await _dbContext.MlDatasets
-            .AsNoTracking()
+        var dataset = await _datasetRepository.Query(true)
             .Include(item => item.UploadedByUser)
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
@@ -145,8 +143,8 @@ public class DatasetService : IDatasetService
             UpdatedBy = userId
         };
 
-        _dbContext.MlDatasets.Add(dataset);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _datasetRepository.Add(dataset);
+        await _datasetRepository.SaveChangesAsync(cancellationToken);
 
         return await GetDatasetAsync(dataset.Id, cancellationToken);
     }
@@ -155,7 +153,7 @@ public class DatasetService : IDatasetService
     {
         ValidateCsv(file);
 
-        var dataset = await _dbContext.MlDatasets.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+        var dataset = await _datasetRepository.Query().FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (dataset is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Dataset not found.");
@@ -202,13 +200,13 @@ public class DatasetService : IDatasetService
         dataset.UpdatedAt = now;
         dataset.UpdatedBy = userId;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _datasetRepository.SaveChangesAsync(cancellationToken);
         return await GetDatasetAsync(dataset.Id, cancellationToken);
     }
 
     public async Task<DatasetResponseDto> ArchiveAsync(int userId, int id, CancellationToken cancellationToken)
     {
-        var dataset = await _dbContext.MlDatasets.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+        var dataset = await _datasetRepository.Query().FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (dataset is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Dataset not found.");
@@ -217,7 +215,7 @@ public class DatasetService : IDatasetService
         dataset.Status = "Archived";
         dataset.UpdatedAt = DateTime.UtcNow;
         dataset.UpdatedBy = userId;
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _datasetRepository.SaveChangesAsync(cancellationToken);
 
         return await GetDatasetAsync(id, cancellationToken);
     }
@@ -231,7 +229,7 @@ public class DatasetService : IDatasetService
         }
 
         var relativePath = ToProjectRelativePath(heartPath);
-        var exists = await _dbContext.MlDatasets.AnyAsync(
+        var exists = await _datasetRepository.Query(true).AnyAsync(
             dataset => dataset.FilePath == relativePath || dataset.FileName == "heart.csv",
             cancellationToken);
 
@@ -241,7 +239,7 @@ public class DatasetService : IDatasetService
         }
 
         var now = DateTime.UtcNow;
-        _dbContext.MlDatasets.Add(new MlDataset
+        _datasetRepository.Add(new MlDataset
         {
             Name = "Heart Disease Dataset",
             Type = "Classification",
@@ -254,7 +252,7 @@ public class DatasetService : IDatasetService
             CreatedAt = now,
             UpdatedAt = now
         });
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _datasetRepository.SaveChangesAsync(cancellationToken);
     }
 
     private static IQueryable<MlDataset> ApplySort(IQueryable<MlDataset> query, string sortBy, string sortDirection)

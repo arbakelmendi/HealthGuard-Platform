@@ -1,11 +1,11 @@
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using HealthGuard.API.Data;
 using HealthGuard.API.DTOs.DataTransfer;
 using HealthGuard.API.DTOs.HealthRecords;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
+using HealthGuard.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,11 +17,11 @@ namespace HealthGuard.API.Controllers;
 [Authorize]
 public class DataTransferController : ControllerBase
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IApplicationDataService _dataService;
 
-    public DataTransferController(ApplicationDbContext dbContext)
+    public DataTransferController(IApplicationDataService dataService)
     {
-        _dbContext = dbContext;
+        _dataService = dataService;
     }
 
     [HttpGet("health-records/export")]
@@ -32,7 +32,7 @@ public class DataTransferController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var query = _dbContext.HealthRecords.AsNoTracking().Where(record => record.UserId == userId);
+        var query = _dataService.Query<HealthRecord>(true).Where(record => record.UserId == userId);
 
         if (from.HasValue)
         {
@@ -91,7 +91,7 @@ public class DataTransferController : ControllerBase
             var diastolic = item.DiastolicBp ?? 80;
             var heightMeters = heightCm / 100m;
 
-            _dbContext.HealthRecords.Add(new HealthRecord
+            _dataService.Add(new HealthRecord
             {
                 UserId = userId,
                 Age = item.Age,
@@ -117,7 +117,7 @@ public class DataTransferController : ControllerBase
             });
         }
 
-        _dbContext.ImportBatches.Add(new ImportBatch
+        _dataService.Add(new ImportBatch
         {
             UserId = userId,
             Format = normalized,
@@ -129,13 +129,13 @@ public class DataTransferController : ControllerBase
             UpdatedBy = userId
         });
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dataService.SaveChangesAsync(cancellationToken);
         return Ok(new { imported = records.Count });
     }
 
     private async Task SaveExportJobAsync(int userId, string format, CancellationToken cancellationToken)
     {
-        _dbContext.DataExportJobs.Add(new DataExportJob
+        _dataService.Add(new DataExportJob
         {
             UserId = userId,
             Format = format,
@@ -147,7 +147,7 @@ public class DataTransferController : ControllerBase
             UpdatedBy = userId
         });
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dataService.SaveChangesAsync(cancellationToken);
     }
 
     private int GetCurrentUserId()

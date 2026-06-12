@@ -1,8 +1,8 @@
-using HealthGuard.API.Data;
 using HealthGuard.API.DTOs.Profile;
 using HealthGuard.API.DTOs.Users;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
+using HealthGuard.API.Repositories.Interfaces;
 using HealthGuard.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,11 +11,11 @@ namespace HealthGuard.API.Services.Implementations;
 public class UserService : IUserService
 {
     private const string ProtectedAdminEmail = "admin@healthguard.com";
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IUserRepository _userRepository;
 
-    public UserService(ApplicationDbContext dbContext)
+    public UserService(IUserRepository userRepository)
     {
-        _dbContext = dbContext;
+        _userRepository = userRepository;
     }
 
     public async Task<IReadOnlyList<UserResponseDto>> GetAllAsync(
@@ -26,7 +26,7 @@ public class UserService : IUserService
         string sortDirection,
         CancellationToken cancellationToken)
     {
-        var query = _dbContext.Users.AsNoTracking().AsQueryable();
+        var query = _userRepository.Query(true);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -97,8 +97,8 @@ public class UserService : IUserService
             UpdatedAt = now
         };
 
-        _dbContext.Users.Add(user);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _userRepository.Add(user);
+        await _userRepository.SaveChangesAsync(cancellationToken);
 
         return UserMapper.ToResponse(user);
     }
@@ -126,7 +126,7 @@ public class UserService : IUserService
         user.SmokingStatus = TrimOrNull(request.SmokingStatus);
         user.UpdatedAt = DateTime.UtcNow;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _userRepository.SaveChangesAsync(cancellationToken);
 
         return UserMapper.ToResponse(user);
     }
@@ -145,8 +145,8 @@ public class UserService : IUserService
             throw new ApiException(StatusCodes.Status400BadRequest, "The default admin account cannot be deleted.");
         }
 
-        _dbContext.Users.Remove(user);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _userRepository.Remove(user);
+        await _userRepository.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<UserResponseDto> GetProfileAsync(int currentUserId, CancellationToken cancellationToken)
@@ -180,14 +180,14 @@ public class UserService : IUserService
         user.SmokingStatus = TrimOrNull(request.SmokingStatus);
         user.UpdatedAt = DateTime.UtcNow;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _userRepository.SaveChangesAsync(cancellationToken);
 
         return UserMapper.ToResponse(user);
     }
 
     private async Task<User> FindUserAsync(int id, CancellationToken cancellationToken)
     {
-        var user = await _dbContext.Users.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+        var user = await _userRepository.Query().FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (user is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "User not found.");
@@ -198,7 +198,7 @@ public class UserService : IUserService
 
     private async Task EnsureEmailIsAvailableAsync(string email, int? ignoredUserId, CancellationToken cancellationToken)
     {
-        var exists = await _dbContext.Users.AnyAsync(
+        var exists = await _userRepository.Query(true).AnyAsync(
             user => user.Email == email && (!ignoredUserId.HasValue || user.Id != ignoredUserId.Value),
             cancellationToken);
 

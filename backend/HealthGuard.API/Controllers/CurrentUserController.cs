@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using HealthGuard.API.Data;
 using HealthGuard.API.DTOs.Auth;
 using HealthGuard.API.DTOs.Common;
 using HealthGuard.API.DTOs.Profile;
@@ -17,13 +16,13 @@ namespace HealthGuard.API.Controllers;
 [Authorize]
 public class CurrentUserController : ControllerBase
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IApplicationDataService _dataService;
     private readonly IUserService _userService;
     private readonly IAuthService _authService;
 
-    public CurrentUserController(ApplicationDbContext dbContext, IUserService userService, IAuthService authService)
+    public CurrentUserController(IApplicationDataService dataService, IUserService userService, IAuthService authService)
     {
-        _dbContext = dbContext;
+        _dataService = dataService;
         _userService = userService;
         _authService = authService;
     }
@@ -51,7 +50,7 @@ public class CurrentUserController : ControllerBase
     public async Task<ActionResult<ApiMessageResponse>> DeleteMe(CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
-        var user = await _dbContext.Users.FirstOrDefaultAsync(item => item.Id == userId, cancellationToken);
+        var user = await _dataService.Query<HealthGuard.API.Models.User>().FirstOrDefaultAsync(item => item.Id == userId, cancellationToken);
 
         if (user is null)
         {
@@ -61,7 +60,7 @@ public class CurrentUserController : ControllerBase
         user.IsActive = false;
         user.UpdatedAt = DateTime.UtcNow;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dataService.SaveChangesAsync(cancellationToken);
 
         return Ok(new ApiMessageResponse("Account deactivated successfully."));
     }

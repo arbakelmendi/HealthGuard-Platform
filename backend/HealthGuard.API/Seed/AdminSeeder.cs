@@ -1,31 +1,38 @@
-using HealthGuard.API.Data;
 using HealthGuard.API.Models;
+using HealthGuard.API.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace HealthGuard.API.Seed;
 
 public class AdminSeeder
 {
-    private const string AdminEmail = "admin@healthguard.com";
-    private const string AdminPassword = "admin123";
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IUserRepository _userRepository;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<AdminSeeder> _logger;
 
-    public AdminSeeder(ApplicationDbContext dbContext, ILogger<AdminSeeder> logger)
+    public AdminSeeder(
+        IUserRepository userRepository,
+        IConfiguration configuration,
+        ILogger<AdminSeeder> logger)
     {
-        _dbContext = dbContext;
+        _userRepository = userRepository;
+        _configuration = configuration;
         _logger = logger;
     }
 
     public async Task SeedAsync()
     {
-        if (!await _dbContext.Database.CanConnectAsync())
+        if (await _userRepository.Query(true).AnyAsync(user => user.Role == UserRoles.Admin))
         {
             return;
         }
 
-        if (await _dbContext.Users.AnyAsync(user => user.Role == UserRoles.Admin))
+        var adminEmail = _configuration["Admin:Email"];
+        var adminPassword = _configuration["Admin:Password"];
+        if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
         {
+            _logger.LogWarning(
+                "No admin account exists. Set Admin__Email and Admin__Password to enable initial admin seeding.");
             return;
         }
 
@@ -34,16 +41,16 @@ public class AdminSeeder
         {
             FirstName = "HealthGuard",
             LastName = "Admin",
-            Email = AdminEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(AdminPassword),
+            Email = adminEmail.Trim().ToLowerInvariant(),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
             Role = UserRoles.Admin,
             IsActive = true,
             CreatedAt = now,
             UpdatedAt = now
         };
 
-        _dbContext.Users.Add(admin);
-        await _dbContext.SaveChangesAsync();
-        _logger.LogInformation("Seeded default HealthGuard admin user {Email}.", AdminEmail);
+        _userRepository.Add(admin);
+        await _userRepository.SaveChangesAsync();
+        _logger.LogInformation("Seeded default HealthGuard admin user {Email}.", admin.Email);
     }
 }
