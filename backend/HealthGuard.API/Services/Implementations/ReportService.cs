@@ -1,10 +1,10 @@
 using System.Text;
 using System.Text.Json;
 using HealthGuard.API.DTOs.Admin;
-using HealthGuard.API.Data;
 using HealthGuard.API.DTOs.Reports;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
+using HealthGuard.API.Repositories.Interfaces;
 using HealthGuard.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,18 +12,27 @@ namespace HealthGuard.API.Services.Implementations;
 
 public class ReportService : IReportService
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IReportRepository _reportRepository;
+    private readonly IPredictionRepository _predictionRepository;
+    private readonly IRepository<HealthRecord> _healthRecordRepository;
+    private readonly INotificationRepository _notificationRepository;
     private readonly IRealtimeNotificationService _realtimeNotificationService;
     private readonly IWebHostEnvironment _environment;
     private readonly IConfiguration _configuration;
 
     public ReportService(
-        ApplicationDbContext dbContext,
+        IReportRepository reportRepository,
+        IPredictionRepository predictionRepository,
+        IRepository<HealthRecord> healthRecordRepository,
+        INotificationRepository notificationRepository,
         IRealtimeNotificationService realtimeNotificationService,
         IWebHostEnvironment environment,
         IConfiguration configuration)
     {
-        _dbContext = dbContext;
+        _reportRepository = reportRepository;
+        _predictionRepository = predictionRepository;
+        _healthRecordRepository = healthRecordRepository;
+        _notificationRepository = notificationRepository;
         _realtimeNotificationService = realtimeNotificationService;
         _environment = environment;
         _configuration = configuration;
@@ -200,8 +209,8 @@ public class ReportService : IReportService
             UpdatedBy = userId
         };
 
-        _dbContext.GeneratedReports.Add(report);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _reportRepository.Add(report);
+        await _reportRepository.SaveChangesAsync(cancellationToken);
 
         var notification = new Notification
         {
@@ -212,8 +221,8 @@ public class ReportService : IReportService
             Source = NotificationSources.Report,
             CreatedAt = DateTime.UtcNow
         };
-        _dbContext.Notifications.Add(notification);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _notificationRepository.Add(notification);
+        await _notificationRepository.SaveChangesAsync(cancellationToken);
         await _realtimeNotificationService.SendNotificationAsync(notification, cancellationToken);
 
         return ToResponse(report);
@@ -312,19 +321,19 @@ public class ReportService : IReportService
 
     private IQueryable<PredictionResult> ScopedPredictions(int userId, bool isAdmin)
     {
-        var query = _dbContext.PredictionResults.AsNoTracking();
+        var query = _predictionRepository.Query(true);
         return isAdmin ? query : query.Where(prediction => prediction.UserId == userId);
     }
 
     private IQueryable<HealthRecord> ScopedHealthRecords(int userId, bool isAdmin)
     {
-        var query = _dbContext.HealthRecords.AsNoTracking();
+        var query = _healthRecordRepository.Query(true);
         return isAdmin ? query : query.Where(record => record.UserId == userId);
     }
 
     private IQueryable<GeneratedReport> ScopedGeneratedReports(int userId, bool isAdmin)
     {
-        var query = _dbContext.GeneratedReports.AsNoTracking();
+        var query = _reportRepository.Query(true);
         return isAdmin ? query : query.Where(report => report.UserId == userId);
     }
 

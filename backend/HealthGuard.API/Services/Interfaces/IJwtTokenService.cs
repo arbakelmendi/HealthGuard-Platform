@@ -4,5 +4,7 @@ namespace HealthGuard.API.Services.Interfaces;
 
 public interface IJwtTokenService
 {
-    (string Token, DateTime ExpiresAt) GenerateToken(User user);
+    Task<(string Token, DateTime ExpiresAt)> GenerateTokenAsync(
+        User user,
+        CancellationToken cancellationToken = default);
 }

@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using HealthGuard.API.Data;
 using HealthGuard.API.DTOs.HealthRecords;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
@@ -15,12 +14,14 @@ namespace HealthGuard.API.Controllers;
 [Authorize]
 public class HealthRecordsController : ControllerBase
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IApplicationDataService _dataService;
     private readonly IRealtimeNotificationService _realtimeNotificationService;
 
-    public HealthRecordsController(ApplicationDbContext dbContext, IRealtimeNotificationService realtimeNotificationService)
+    public HealthRecordsController(
+        IApplicationDataService dataService,
+        IRealtimeNotificationService realtimeNotificationService)
     {
-        _dbContext = dbContext;
+        _dataService = dataService;
         _realtimeNotificationService = realtimeNotificationService;
     }
 
@@ -44,8 +45,7 @@ public class HealthRecordsController : ControllerBase
             pageSize = 10;
         }
 
-        var query = _dbContext.HealthRecords
-            .AsNoTracking()
+        var query = _dataService.Query<HealthRecord>(true)
             .Where(record => record.UserId == userId);
 
         if (from.HasValue)
@@ -74,8 +74,7 @@ public class HealthRecordsController : ControllerBase
     {
         var userId = GetCurrentUserId();
 
-        var latestRecord = await _dbContext.HealthRecords
-            .AsNoTracking()
+        var latestRecord = await _dataService.Query<HealthRecord>(true)
             .Include(record => record.User)
             .Where(record => record.UserId == userId)
             .OrderByDescending(record => record.CreatedAt)
@@ -96,8 +95,7 @@ public class HealthRecordsController : ControllerBase
     {
         EnsureCanAccessUser(userId);
 
-        var latestRecord = await _dbContext.HealthRecords
-            .AsNoTracking()
+        var latestRecord = await _dataService.Query<HealthRecord>(true)
             .Where(record => record.UserId == userId)
             .OrderByDescending(record => record.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
@@ -120,8 +118,7 @@ public class HealthRecordsController : ControllerBase
     {
         EnsureCanAccessUser(userId);
 
-        var query = _dbContext.HealthRecords
-            .AsNoTracking()
+        var query = _dataService.Query<HealthRecord>(true)
             .Include(record => record.User)
             .Where(record => record.UserId == userId);
 
@@ -152,8 +149,7 @@ public class HealthRecordsController : ControllerBase
 
         var normalizedMetric = metric?.ToLower();
 
-        var records = await _dbContext.HealthRecords
-            .AsNoTracking()
+        var records = await _dataService.Query<HealthRecord>(true)
             .Where(record => record.UserId == userId)
             .OrderBy(record => record.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -176,8 +172,7 @@ public class HealthRecordsController : ControllerBase
     {
         var userId = GetCurrentUserId();
 
-        var records = await _dbContext.HealthRecords
-            .AsNoTracking()
+        var records = await _dataService.Query<HealthRecord>(true)
             .Where(record => record.UserId == userId)
             .OrderByDescending(record => record.CreatedAt)
             .Take(2)
@@ -216,8 +211,7 @@ public class HealthRecordsController : ControllerBase
     {
         var userId = GetCurrentUserId();
 
-        var record = await _dbContext.HealthRecords
-            .AsNoTracking()
+        var record = await _dataService.Query<HealthRecord>(true)
             .FirstOrDefaultAsync(record => record.Id == id && record.UserId == userId, cancellationToken);
 
         if (record is null)
@@ -239,8 +233,8 @@ public class HealthRecordsController : ControllerBase
         var record = new HealthRecord { UserId = userId, CreatedAt = DateTime.UtcNow };
         ApplyHealthRecordFields(record, request);
 
-        _dbContext.HealthRecords.Add(record);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _dataService.Add(record);
+        await _dataService.SaveChangesAsync(cancellationToken);
 
         await CreateHealthRecordUpdatedNotificationAsync(userId, cancellationToken);
 
@@ -256,7 +250,7 @@ public class HealthRecordsController : ControllerBase
         var userId = request.UserId ?? GetCurrentUserId();
         EnsureCanAccessUser(userId);
 
-        var record = await _dbContext.HealthRecords
+        var record = await _dataService.Query<HealthRecord>()
             .FirstOrDefaultAsync(record => record.Id == id && record.UserId == userId, cancellationToken);
 
         if (record is null)
@@ -266,7 +260,7 @@ public class HealthRecordsController : ControllerBase
 
         ApplyHealthRecordFields(record, request);
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dataService.SaveChangesAsync(cancellationToken);
 
         await CreateHealthRecordUpdatedNotificationAsync(userId, cancellationToken);
 
@@ -280,7 +274,7 @@ public class HealthRecordsController : ControllerBase
     {
         var userId = GetCurrentUserId();
 
-        var record = await _dbContext.HealthRecords
+        var record = await _dataService.Query<HealthRecord>()
             .FirstOrDefaultAsync(record => record.Id == id && record.UserId == userId, cancellationToken);
 
         if (record is null)
@@ -288,8 +282,8 @@ public class HealthRecordsController : ControllerBase
             throw new ApiException(StatusCodes.Status404NotFound, "Health record not found.");
         }
 
-        _dbContext.HealthRecords.Remove(record);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _dataService.Remove(record);
+        await _dataService.SaveChangesAsync(cancellationToken);
 
         return Ok(new { message = "Health record deleted successfully." });
     }
@@ -487,7 +481,7 @@ public class HealthRecordsController : ControllerBase
         var minuteStart = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0, DateTimeKind.Utc);
         var minuteEnd = minuteStart.AddMinutes(1);
 
-        var exists = await _dbContext.Notifications.AnyAsync(
+        var exists = await _dataService.Query<Notification>(true).AnyAsync(
             notification => notification.UserId == userId
                 && notification.Source == NotificationSources.HealthRecord
                 && notification.Title == "Health Record Updated"
@@ -510,8 +504,8 @@ public class HealthRecordsController : ControllerBase
             CreatedAt = now
         };
 
-        _dbContext.Notifications.Add(notification);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _dataService.Add(notification);
+        await _dataService.SaveChangesAsync(cancellationToken);
         await _realtimeNotificationService.SendNotificationAsync(notification, cancellationToken);
     }
 }

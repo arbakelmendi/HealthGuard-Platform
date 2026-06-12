@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using System.Text.Json;
-using HealthGuard.API.Data;
 using HealthGuard.API.DTOs.HealthRecords;
 using HealthGuard.API.DTOs.Predictions;
 using HealthGuard.API.Middleware;
@@ -18,18 +17,18 @@ namespace HealthGuard.API.Controllers;
 [Authorize]
 public class PredictionsController : ControllerBase
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IApplicationDataService _dataService;
     private readonly HealthRiskPredictionService _predictionService;
     private readonly MachineLearningPredictionService _machineLearningPredictionService;
     private readonly IRealtimeNotificationService _realtimeNotificationService;
 
     public PredictionsController(
-        ApplicationDbContext dbContext,
+        IApplicationDataService dataService,
         HealthRiskPredictionService predictionService,
         MachineLearningPredictionService machineLearningPredictionService,
         IRealtimeNotificationService realtimeNotificationService)
     {
-        _dbContext = dbContext;
+        _dataService = dataService;
         _predictionService = predictionService;
         _machineLearningPredictionService = machineLearningPredictionService;
         _realtimeNotificationService = realtimeNotificationService;
@@ -42,7 +41,7 @@ public class PredictionsController : ControllerBase
     {
         EnsureCanAccessUser(request.UserId);
 
-        var userExists = await _dbContext.Users
+        var userExists = await _dataService.Query<User>(true)
             .AnyAsync(user => user.Id == request.UserId, cancellationToken);
 
         if (!userExists)
@@ -54,7 +53,7 @@ public class PredictionsController : ControllerBase
         var predictionRequest = request;
         if (request.HealthRecordId.HasValue)
         {
-            healthRecord = await _dbContext.HealthRecords
+            healthRecord = await _dataService.Query<HealthRecord>()
                 .FirstOrDefaultAsync(
                     record => record.Id == request.HealthRecordId.Value && record.UserId == request.UserId,
                     cancellationToken);
@@ -93,7 +92,7 @@ public class PredictionsController : ControllerBase
         if (healthRecord is null)
         {
             healthRecord = CreateHealthRecord(predictionRequest, prediction.Bmi);
-            _dbContext.HealthRecords.Add(healthRecord);
+            _dataService.Add(healthRecord);
         }
 
         var result = new PredictionResult
@@ -108,8 +107,8 @@ public class PredictionsController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
-        _dbContext.PredictionResults.Add(result);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _dataService.Add(result);
+        await _dataService.SaveChangesAsync(cancellationToken);
 
         await CreatePredictionNotificationsAsync(result, cancellationToken);
 
@@ -127,8 +126,7 @@ public class PredictionsController : ControllerBase
     {
         EnsureCanAccessUser(userId);
 
-        var query = _dbContext.PredictionResults
-            .AsNoTracking()
+        var query = _dataService.Query<PredictionResult>(true)
             .Include(prediction => prediction.HealthRecord)
             .Where(prediction => prediction.UserId == userId);
 
@@ -156,8 +154,7 @@ public class PredictionsController : ControllerBase
         int id,
         CancellationToken cancellationToken)
     {
-        var prediction = await _dbContext.PredictionResults
-            .AsNoTracking()
+        var prediction = await _dataService.Query<PredictionResult>(true)
             .Include(prediction => prediction.HealthRecord)
             .FirstOrDefaultAsync(prediction => prediction.Id == id, cancellationToken);
 
@@ -180,8 +177,7 @@ public class PredictionsController : ControllerBase
         [FromQuery] string sortDirection = "desc",
         CancellationToken cancellationToken = default)
     {
-        IQueryable<PredictionResult> query = _dbContext.PredictionResults
-            .AsNoTracking()
+        IQueryable<PredictionResult> query = _dataService.Query<PredictionResult>(true)
             .Include(prediction => prediction.User)
             .Include(prediction => prediction.HealthRecord);
 
@@ -446,7 +442,7 @@ public class PredictionsController : ControllerBase
         string type,
         CancellationToken cancellationToken)
     {
-        var exists = await _dbContext.Notifications.AnyAsync(
+        var exists = await _dataService.Query<Notification>(true).AnyAsync(
             notification => notification.PredictionResultId == prediction.Id
                 && notification.UserId == prediction.UserId
                 && notification.Title == title,
@@ -468,8 +464,8 @@ public class PredictionsController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
-        _dbContext.Notifications.Add(notification);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _dataService.Add(notification);
+        await _dataService.SaveChangesAsync(cancellationToken);
         await _realtimeNotificationService.SendNotificationAsync(notification, cancellationToken);
     }
 }

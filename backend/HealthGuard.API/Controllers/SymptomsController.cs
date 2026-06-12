@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using HealthGuard.API.Data;
 using HealthGuard.API.DTOs.Common;
 using HealthGuard.API.DTOs.Symptoms;
 using HealthGuard.API.Middleware;
@@ -24,14 +23,14 @@ public class SymptomsController : ControllerBase
         "Critical"
     };
 
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IApplicationDataService _dataService;
     private readonly IRealtimeNotificationService _realtimeNotificationService;
 
     public SymptomsController(
-        ApplicationDbContext dbContext,
+        IApplicationDataService dataService,
         IRealtimeNotificationService realtimeNotificationService)
     {
-        _dbContext = dbContext;
+        _dataService = dataService;
         _realtimeNotificationService = realtimeNotificationService;
     }
 
@@ -44,8 +43,7 @@ public class SymptomsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var query = _dbContext.SymptomLogs
-            .AsNoTracking()
+        var query = _dataService.Query<SymptomLog>(true)
             .Where(symptom => symptom.UserId == userId);
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -93,9 +91,9 @@ public class SymptomsController : ControllerBase
             UpdatedAt = now
         };
 
-        _dbContext.SymptomLogs.Add(symptom);
+        _dataService.Add(symptom);
         var notification = await AddSymptomNotificationIfMissingAsync(symptom, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dataService.SaveChangesAsync(cancellationToken);
 
         if (notification is not null)
         {
@@ -103,7 +101,7 @@ public class SymptomsController : ControllerBase
         }
 
         await UpdateLatestHealthRecordSymptomsAsync(userId, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dataService.SaveChangesAsync(cancellationToken);
 
         return CreatedAtAction(nameof(GetMine), ToResponse(symptom));
     }
@@ -120,9 +118,9 @@ public class SymptomsController : ControllerBase
         symptom.Notes = TrimOrNull(request.Notes);
         symptom.UpdatedAt = DateTime.UtcNow;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dataService.SaveChangesAsync(cancellationToken);
         await UpdateLatestHealthRecordSymptomsAsync(symptom.UserId, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dataService.SaveChangesAsync(cancellationToken);
 
         return Ok(ToResponse(symptom));
     }
@@ -133,10 +131,10 @@ public class SymptomsController : ControllerBase
         var symptom = await FindMineAsync(id, cancellationToken);
         var userId = symptom.UserId;
 
-        _dbContext.SymptomLogs.Remove(symptom);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _dataService.Remove(symptom);
+        await _dataService.SaveChangesAsync(cancellationToken);
         await UpdateLatestHealthRecordSymptomsAsync(userId, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dataService.SaveChangesAsync(cancellationToken);
 
         return Ok(new ApiMessageResponse("Symptom deleted successfully."));
     }
@@ -144,7 +142,7 @@ public class SymptomsController : ControllerBase
     private async Task<SymptomLog> FindMineAsync(int id, CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
-        var symptom = await _dbContext.SymptomLogs.FirstOrDefaultAsync(item => item.Id == id && item.UserId == userId, cancellationToken);
+        var symptom = await _dataService.Query<SymptomLog>().FirstOrDefaultAsync(item => item.Id == id && item.UserId == userId, cancellationToken);
         if (symptom is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Symptom log not found.");
@@ -155,7 +153,7 @@ public class SymptomsController : ControllerBase
 
     private async Task UpdateLatestHealthRecordSymptomsAsync(int userId, CancellationToken cancellationToken)
     {
-        var latestRecord = await _dbContext.HealthRecords
+        var latestRecord = await _dataService.Query<HealthRecord>()
             .Where(record => record.UserId == userId)
             .OrderByDescending(record => record.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
@@ -165,7 +163,7 @@ public class SymptomsController : ControllerBase
             return;
         }
 
-        var recentSymptoms = await _dbContext.SymptomLogs
+        var recentSymptoms = await _dataService.Query<SymptomLog>(true)
             .Where(symptom => symptom.UserId == userId)
             .OrderByDescending(symptom => symptom.CreatedAt)
             .Take(5)
@@ -187,7 +185,7 @@ public class SymptomsController : ControllerBase
             : "Your symptom has been recorded successfully.";
         var cutoff = DateTime.UtcNow.AddMinutes(-30);
 
-        var exists = await _dbContext.Notifications.AnyAsync(
+        var exists = await _dataService.Query<Notification>(true).AnyAsync(
             notification => notification.UserId == symptom.UserId
                 && notification.Title == title
                 && notification.Source == NotificationSources.System
@@ -209,7 +207,7 @@ public class SymptomsController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
-        _dbContext.Notifications.Add(notification);
+        _dataService.Add(notification);
         return notification;
     }
 

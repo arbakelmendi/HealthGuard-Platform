@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using HealthGuard.API.Data;
 using HealthGuard.API.DTOs.Common;
 using HealthGuard.API.DTOs.Notifications;
 using HealthGuard.API.Middleware;
@@ -16,16 +15,16 @@ namespace HealthGuard.API.Controllers;
 [Authorize]
 public class NotificationsController : ControllerBase
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IApplicationDataService _dataService;
     private readonly IRealtimeNotificationService _realtimeNotificationService;
     private readonly IRedisCacheService _redisCacheService;
 
     public NotificationsController(
-        ApplicationDbContext dbContext,
+        IApplicationDataService dataService,
         IRealtimeNotificationService realtimeNotificationService,
         IRedisCacheService redisCacheService)
     {
-        _dbContext = dbContext;
+        _dataService = dataService;
         _realtimeNotificationService = realtimeNotificationService;
         _redisCacheService = redisCacheService;
     }
@@ -42,8 +41,7 @@ public class NotificationsController : ControllerBase
     {
         EnsureCanAccessUser(userId);
 
-        var query = _dbContext.Notifications
-            .AsNoTracking()
+        var query = _dataService.Query<Notification>(true)
             .Where(notification => notification.UserId == userId);
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -91,8 +89,7 @@ public class NotificationsController : ControllerBase
             return Ok(new { unreadCount = cachedCount.Value });
         }
 
-        var count = await _dbContext.Notifications
-            .AsNoTracking()
+        var count = await _dataService.Query<Notification>(true)
             .CountAsync(notification => notification.UserId == userId && !notification.IsRead, cancellationToken);
 
         await _redisCacheService.SetIntAsync(cacheKey, count);
@@ -104,7 +101,7 @@ public class NotificationsController : ControllerBase
         int id,
         CancellationToken cancellationToken)
     {
-        var notification = await _dbContext.Notifications
+        var notification = await _dataService.Query<Notification>()
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
         if (notification is null)
@@ -118,7 +115,7 @@ public class NotificationsController : ControllerBase
         {
             notification.IsRead = true;
             notification.ReadAt = DateTime.UtcNow;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dataService.SaveChangesAsync(cancellationToken);
             await SynchronizeUnreadCountAsync(notification.UserId, cancellationToken);
         }
 
@@ -133,7 +130,7 @@ public class NotificationsController : ControllerBase
         EnsureCanAccessUser(userId);
 
         var now = DateTime.UtcNow;
-        var notifications = await _dbContext.Notifications
+        var notifications = await _dataService.Query<Notification>()
             .Where(notification => notification.UserId == userId && !notification.IsRead)
             .ToListAsync(cancellationToken);
 
@@ -143,7 +140,7 @@ public class NotificationsController : ControllerBase
             notification.ReadAt = now;
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dataService.SaveChangesAsync(cancellationToken);
         await _redisCacheService.SetIntAsync(GetUnreadCountKey(userId), 0);
         await _redisCacheService.RemoveAsync($"healthguard:dashboard:user:{userId}");
 
@@ -159,7 +156,7 @@ public class NotificationsController : ControllerBase
         ValidateNotificationType(request.Type);
         ValidateNotificationSource(request.Source);
 
-        var userExists = await _dbContext.Users
+        var userExists = await _dataService.Query<User>(true)
             .AnyAsync(user => user.Id == request.UserId, cancellationToken);
 
         if (!userExists)
@@ -169,7 +166,7 @@ public class NotificationsController : ControllerBase
 
         if (request.PredictionResultId.HasValue)
         {
-            var predictionExists = await _dbContext.PredictionResults
+            var predictionExists = await _dataService.Query<PredictionResult>(true)
                 .AnyAsync(
                     prediction => prediction.Id == request.PredictionResultId.Value && prediction.UserId == request.UserId,
                     cancellationToken);
@@ -179,7 +176,7 @@ public class NotificationsController : ControllerBase
                 throw new ApiException(StatusCodes.Status404NotFound, "Prediction result not found for this user.");
             }
 
-            var duplicateExists = await _dbContext.Notifications
+            var duplicateExists = await _dataService.Query<Notification>(true)
                 .AnyAsync(
                     notification => notification.UserId == request.UserId
                         && notification.PredictionResultId == request.PredictionResultId.Value
@@ -203,8 +200,8 @@ public class NotificationsController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
-        _dbContext.Notifications.Add(notification);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _dataService.Add(notification);
+        await _dataService.SaveChangesAsync(cancellationToken);
         await _realtimeNotificationService.SendNotificationAsync(notification, cancellationToken);
 
         return CreatedAtAction(nameof(GetByUser), new { userId = notification.UserId }, ToResponse(notification));
@@ -215,13 +212,12 @@ public class NotificationsController : ControllerBase
     public async Task<ActionResult<object>> GenerateHealthRecordReminders(CancellationToken cancellationToken)
     {
         var reminderCutoff = DateTime.UtcNow.AddDays(-7);
-        var users = await _dbContext.Users
-            .AsNoTracking()
+        var users = await _dataService.Query<User>(true)
             .Where(user => user.IsActive)
             .Select(user => new
             {
                 user.Id,
-                LatestHealthRecordAt = _dbContext.HealthRecords
+                LatestHealthRecordAt = _dataService.Query<HealthRecord>(true)
                     .Where(record => record.UserId == user.Id)
                     .Max(record => (DateTime?)record.CreatedAt)
             })
@@ -237,7 +233,7 @@ public class NotificationsController : ControllerBase
                 continue;
             }
 
-            var hasUnreadReminder = await _dbContext.Notifications.AnyAsync(
+            var hasUnreadReminder = await _dataService.Query<Notification>(true).AnyAsync(
                 notification => notification.UserId == user.Id
                     && notification.Source == NotificationSources.HealthRecord
                     && notification.Type == NotificationTypes.Reminder
@@ -250,7 +246,7 @@ public class NotificationsController : ControllerBase
                 continue;
             }
 
-            var hasRecentReminder = await _dbContext.Notifications.AnyAsync(
+            var hasRecentReminder = await _dataService.Query<Notification>(true).AnyAsync(
                 notification => notification.UserId == user.Id
                     && notification.Source == NotificationSources.HealthRecord
                     && notification.Type == NotificationTypes.Reminder
@@ -273,14 +269,13 @@ public class NotificationsController : ControllerBase
                 CreatedAt = now
             };
 
-            _dbContext.Notifications.Add(notification);
+            _dataService.Add(notification);
             createdCount++;
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dataService.SaveChangesAsync(cancellationToken);
 
-        var reminders = await _dbContext.Notifications
-            .AsNoTracking()
+        var reminders = await _dataService.Query<Notification>(true)
             .Where(notification => notification.CreatedAt == now && notification.Title == "Reminder")
             .ToListAsync(cancellationToken);
 
@@ -329,8 +324,7 @@ public class NotificationsController : ControllerBase
 
     private async Task SynchronizeUnreadCountAsync(int userId, CancellationToken cancellationToken)
     {
-        var unreadCount = await _dbContext.Notifications
-            .AsNoTracking()
+        var unreadCount = await _dataService.Query<Notification>(true)
             .CountAsync(notification => notification.UserId == userId && !notification.IsRead, cancellationToken);
 
         await _redisCacheService.SetIntAsync(GetUnreadCountKey(userId), unreadCount);

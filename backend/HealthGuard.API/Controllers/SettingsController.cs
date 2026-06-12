@@ -1,8 +1,8 @@
 using System.Security.Claims;
-using HealthGuard.API.Data;
 using HealthGuard.API.DTOs.Settings;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
+using HealthGuard.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,11 +14,11 @@ namespace HealthGuard.API.Controllers;
 [Authorize]
 public class SettingsController : ControllerBase
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IApplicationDataService _dataService;
 
-    public SettingsController(ApplicationDbContext dbContext)
+    public SettingsController(IApplicationDataService dataService)
     {
-        _dbContext = dbContext;
+        _dataService = dataService;
     }
 
     [HttpGet("me")]
@@ -41,20 +41,20 @@ public class SettingsController : ControllerBase
         settings.RecommendationProgressAlerts = request.RecommendationProgressAlerts;
         settings.UpdatedAt = DateTime.UtcNow;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dataService.SaveChangesAsync(cancellationToken);
 
         return Ok(ToResponse(settings));
     }
 
     private async Task<UserSettings> GetOrCreateSettingsAsync(int userId, CancellationToken cancellationToken)
     {
-        var settings = await _dbContext.UserSettings.FirstOrDefaultAsync(item => item.UserId == userId, cancellationToken);
+        var settings = await _dataService.Query<UserSettings>().FirstOrDefaultAsync(item => item.UserId == userId, cancellationToken);
         if (settings is not null)
         {
             return settings;
         }
 
-        var userExists = await _dbContext.Users.AnyAsync(user => user.Id == userId, cancellationToken);
+        var userExists = await _dataService.Query<User>(true).AnyAsync(user => user.Id == userId, cancellationToken);
         if (!userExists)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "User not found.");
@@ -68,8 +68,8 @@ public class SettingsController : ControllerBase
             UpdatedAt = now
         };
 
-        _dbContext.UserSettings.Add(settings);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        _dataService.Add(settings);
+        await _dataService.SaveChangesAsync(cancellationToken);
 
         return settings;
     }

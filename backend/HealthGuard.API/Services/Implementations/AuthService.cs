@@ -1,7 +1,7 @@
-using HealthGuard.API.Data;
 using HealthGuard.API.DTOs.Auth;
 using HealthGuard.API.Middleware;
 using HealthGuard.API.Models;
+using HealthGuard.API.Repositories.Interfaces;
 using HealthGuard.API.Services.Interfaces;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -12,12 +12,17 @@ namespace HealthGuard.API.Services.Implementations;
 
 public class AuthService : IAuthService
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IUserRepository _userRepository;
+    private readonly IRepository<RefreshToken> _refreshTokenRepository;
     private readonly IJwtTokenService _jwtTokenService;
 
-    public AuthService(ApplicationDbContext dbContext, IJwtTokenService jwtTokenService)
+    public AuthService(
+        IUserRepository userRepository,
+        IRepository<RefreshToken> refreshTokenRepository,
+        IJwtTokenService jwtTokenService)
     {
-        _dbContext = dbContext;
+        _userRepository = userRepository;
+        _refreshTokenRepository = refreshTokenRepository;
         _jwtTokenService = jwtTokenService;
     }
 
@@ -49,10 +54,10 @@ public class AuthService : IAuthService
             UpdatedAt = now
         };
 
-        _dbContext.Users.Add(user);
+        _userRepository.Add(user);
         try
         {
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _userRepository.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException ex) when (
             ex.InnerException is SqlException { Number: 2601 or 2627 })
@@ -68,7 +73,7 @@ public class AuthService : IAuthService
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken)
     {
         var email = NormalizeEmail(request.Email);
-        var user = await _dbContext.Users.FirstOrDefaultAsync(item => item.Email == email, cancellationToken);
+        var user = await _userRepository.Query().FirstOrDefaultAsync(item => item.Email == email, cancellationToken);
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
@@ -86,7 +91,7 @@ public class AuthService : IAuthService
     public async Task<AuthResponseDto> RefreshAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken)
     {
         var tokenHash = HashRefreshToken(request.RefreshToken);
-        var refreshToken = await _dbContext.RefreshTokens
+        var refreshToken = await _refreshTokenRepository.Query()
             .Include(token => token.User)
             .FirstOrDefaultAsync(token => token.TokenHash == tokenHash, cancellationToken);
 
@@ -100,14 +105,14 @@ public class AuthService : IAuthService
         var response = await CreateAuthResponseAsync(refreshToken.User, cancellationToken);
         refreshToken.ReplacedByTokenHash = HashRefreshToken(response.RefreshToken);
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
         return response;
     }
 
     public async Task RevokeRefreshTokenAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken)
     {
         var tokenHash = HashRefreshToken(request.RefreshToken);
-        var refreshToken = await _dbContext.RefreshTokens
+        var refreshToken = await _refreshTokenRepository.Query()
             .FirstOrDefaultAsync(token => token.TokenHash == tokenHash, cancellationToken);
 
         if (refreshToken is null)
@@ -117,12 +122,12 @@ public class AuthService : IAuthService
 
         refreshToken.RevokedAt = DateTime.UtcNow;
         refreshToken.UpdatedAt = DateTime.UtcNow;
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
     }
 
     public async Task ChangePasswordAsync(int userId, ChangePasswordDto request, CancellationToken cancellationToken)
     {
-        var user = await _dbContext.Users.FirstOrDefaultAsync(item => item.Id == userId, cancellationToken);
+        var user = await _userRepository.Query().FirstOrDefaultAsync(item => item.Id == userId, cancellationToken);
         if (user is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "User not found.");
@@ -136,16 +141,16 @@ public class AuthService : IAuthService
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _userRepository.SaveChangesAsync(cancellationToken);
     }
 
     private async Task<AuthResponseDto> CreateAuthResponseAsync(User user, CancellationToken cancellationToken)
     {
-        var token = _jwtTokenService.GenerateToken(user);
+        var token = await _jwtTokenService.GenerateTokenAsync(user, cancellationToken);
         var refreshToken = CreateRefreshToken();
         var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(14);
 
-        _dbContext.RefreshTokens.Add(new RefreshToken
+        _refreshTokenRepository.Add(new RefreshToken
         {
             UserId = user.Id,
             TokenHash = HashRefreshToken(refreshToken),
@@ -156,7 +161,7 @@ public class AuthService : IAuthService
             UpdatedBy = user.Id
         });
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
 
         return new AuthResponseDto
         {
@@ -170,7 +175,7 @@ public class AuthService : IAuthService
 
     private async Task EnsureEmailIsAvailableAsync(string email, int? ignoredUserId, CancellationToken cancellationToken)
     {
-        var exists = await _dbContext.Users.AnyAsync(
+        var exists = await _userRepository.Query(true).AnyAsync(
             user => user.Email == email && (!ignoredUserId.HasValue || user.Id != ignoredUserId.Value),
             cancellationToken);
 
